@@ -3,4 +3,4 @@ title: "Publications"
 sitemap:
   priority: 0.8
 ---
-[TODO: short intro to your papers, talks, and articles.]
+Peer-reviewed journal articles from my research career in physical oceanography — shelf circulation, sediment dynamics, mangrove hydrodynamics, and coastal processes.

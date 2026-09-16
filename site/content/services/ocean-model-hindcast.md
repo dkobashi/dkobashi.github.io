@@ -1,7 +1,7 @@
 ---
 title: "Ocean Model Hindcast"
 date: 2026-01-01
-description: "[TODO: one or two sentence summary of Ocean Model Hindcast, shown on the Services list page.]"
+description: "Development and execution of long-term ocean hindcast systems, reconstructing historical circulation, wave, and storm conditions from numerical models, observations, and atmospheric forcing."
 tags: []
 link: ""
 weight: 20

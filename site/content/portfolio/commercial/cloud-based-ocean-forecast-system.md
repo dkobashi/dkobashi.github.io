@@ -11,6 +11,6 @@ image: "/img/portfolio/cloud-ocean-forecast.jpg"
 weight: 20
 ---
 
-Built on the [Regional Forecast System (ROMS)](/products/modeling-products/regional-forecast-system-roms/) product — this engagement took that existing system and re-platformed its operational delivery for a commercial client.
+Built on the [Regional Ocean Forecast System (ROMS)](/products/modeling-products/regional-forecast-system-roms/) product — this engagement took that existing system and re-platformed its operational delivery for a commercial client.
 
 *Thumbnail: Data center server room — © Cly22, [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/), via Wikimedia Commons.*

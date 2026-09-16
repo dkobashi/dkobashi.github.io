@@ -1,7 +1,7 @@
 ---
 title: "Shoreline Assessments"
 date: 2026-01-01
-description: "[TODO: one or two sentence summary of Shoreline Assessments, shown on the Services list page.]"
+description: "Shoreline change assessment combining satellite-derived analysis, regional sediment-transport modeling, and physics-based beach morphodynamic modeling (XBeach) for storm-impact and resilience planning."
 tags: []
 link: ""
 weight: 50
@@ -19,7 +19,7 @@ Shoreline assessments combine three complementary approaches: satellite-derived 
 - Shoreline change and dune-erosion risk assessment for coastal engineering and resilience planning
 
 ## Example System
-See [Rebuilding Hurricane Ike at Rollover Pass](/portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/) for short-term, storm-scale XBeach modeling validated against airborne lidar, and [Coastal Hydrodynamic](/portfolio/independent-projects/hurricane-ike-schism-wwm-nested-validation/) for coupled wave-hydrodynamics-sediment transport modeling, [Fine Sediment Dynamics](/portfolio/research/fine-sediment-dynamics/) for research dealing with sediment transport.
+See [Rebuilding Hurricane Ike at Rollover Pass](/portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/) for short-term, storm-scale XBeach modeling validated against airborne lidar, and [Fine Sediment Dynamics](/portfolio/research/fine-sediment-dynamics/) for satellite-imagery-based analysis of storm-driven sediment transport.
 
 ## Typical Applications
 - Coastal resilience and vulnerability assessment

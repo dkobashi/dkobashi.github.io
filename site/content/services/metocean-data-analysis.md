@@ -1,7 +1,7 @@
 ---
 title: "Metocean Data Analysis"
 date: 2026-01-01
-description: "[TODO: one or two sentence summary of Metocean Data Analysis, shown on the Services list page.]"
+description: "Metocean data collection and analysis — time series, extreme value, and operational statistics, model validation and calibration, and machine-learning-based data QA/QC."
 tags: []
 link: ""
 weight: 30

@@ -18,7 +18,7 @@ OCSmesh GUI can create mesh grid for SCHISM, but it can also create mesh grids f
 
 ## Example grids created by OCSmesh GUI
 - [SCHISM-WWM and ADCIRC-SWAN for Hurricane Harvey](/portfolio/independent-projects/wave-surge-model-intercomparison/)
-- [SCHISM-WWM for Hurricane Ike](http://localhost:1313/portfolio/independent-projects/hurricane-ike-schism-wwm-nested-validation/)
+- [SCHISM-WWM for Hurricane Ike](/portfolio/independent-projects/hurricane-ike-schism-wwm-nested-validation/)
 
 ## Screenshots
 ![OCSmesh GUI](/img/products/OCSmesh-GUI.png)

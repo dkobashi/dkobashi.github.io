@@ -1,7 +1,7 @@
 ---
 title: "Scientific Software Development"
 date: 2026-01-01
-description: "[TODO: one or two sentence summary of Scientific Software Development, shown on the Services list page.]"
+description: "Custom Python tools and workflows for ocean and metocean data — visualization, analysis, and modeling software built on top of publicly available libraries."
 tags: []
 link: ""
 weight: 40

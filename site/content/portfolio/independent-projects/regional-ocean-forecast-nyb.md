@@ -11,7 +11,7 @@ image: "/img/portfolio/nyb-forecast/cur_speed_snapshots.png"
 weight: 5
 ---
 
-Same underlying capability as the [Regional Forecast System (ROMS)](/products/modeling-products/regional-forecast-system-roms/) product, now configured for the New York Bight and run independently as a self-directed operational project.
+Same underlying capability as the [Regional Ocean Forecast System (ROMS)](/products/modeling-products/regional-forecast-system-roms/) product, now configured for the New York Bight and run independently as a self-directed operational project.
 
 ## Daily Forecast Report
 

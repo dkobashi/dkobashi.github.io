@@ -1,7 +1,7 @@
 ---
 title: "Operational Ocean Forecasting"
 date: 2026-01-01
-description: "[TODO: one or two sentence summary of Operational Ocean Forecasting, shown on the Services list page.]"
+description: "Design, development, and operation of regional ocean forecasting systems — numerical models, observations, and automated workflows delivering daily forecasts for offshore, coastal, and environmental applications."
 tags: []
 link: ""
 weight: 10
@@ -23,7 +23,7 @@ I design, develop, and maintain operational ocean forecasting systems that integ
 
 ## Example System
 
-See [Regional Forecast System (ROMS)](/products/modeling-products/regional-forecast-system-roms/) for the kind of operational system this looks like in practice, and [Hurricane Wave and Storm Surge Modeling](/products/modeling-products/hurricane-wave-storm-surge-modeling/) for event-driven storm forecasting.
+See [Regional Ocean Forecast System (ROMS)](/products/modeling-products/regional-forecast-system-roms/) for the kind of operational system this looks like in practice, and [Hurricane Wave and Storm Surge Modeling](/products/modeling-products/hurricane-wave-storm-surge-modeling/) for event-driven storm forecasting.
 
 ## Typical Applications
 

@@ -61,7 +61,7 @@ site.] -->
 - **Metocean Analytics:** Design criteria, site characterization, hindcast/forecast systems, coastal processes
 - **Numerical Model:** ROMS, Delft3D, SCHISM-WWM, SWAN, ADCIRC-SWAN, CROCO, DHI MIKE
 - **Programming:** Python, MATLAB, Fortran, Bash
-- **Data Scienc & AI:** Xarray, Scikit-Learn, PyTorch, Dask, Pandas
+- **Data Science & AI:** Xarray, Scikit-Learn, PyTorch, Dask, Pandas
 - **HPC & Cloud:** Linux, HPC, Amazon Web Services (AWS)
 - **GIS & Data Systems:** GIS (QGIS), GDAL, Python GIS (Geopandas, Rasterio, Shapely), THREDDS data server (TDS)
 - **AI workflows:** Machine learning for metocean data; AI-assisted software development
