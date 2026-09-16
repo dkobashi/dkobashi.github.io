@@ -1,0 +1,30 @@
+{{ define "main" }}
+{{ partial "breadcrumbs" . }}
+<section class="resume-section p-3 p-lg-5 d-flex flex-column">
+  <div style="width:100%;">
+    <h1 id="{{ urlize .Title }}">{{ .Title }}</h1>
+    <p>{{ .Content }}</p>
+
+    {{ $pages := .RegularPages.ByWeight }}
+    {{ if $pages }}
+    <ul class="nav nav-tabs services-tabs mt-4" id="servicesTab" role="tablist">
+      {{ range $i, $page := $pages }}
+      <li class="nav-item" role="presentation">
+        <a class="nav-link{{ if eq $i 0 }} active{{ end }}" id="services-tab-{{ $i }}" data-toggle="tab" href="#services-pane-{{ $i }}" role="tab" aria-controls="services-pane-{{ $i }}" aria-selected="{{ if eq $i 0 }}true{{ else }}false{{ end }}">{{ $page.Title }}</a>
+      </li>
+      {{ end }}
+    </ul>
+    <div class="tab-content services-tab-content p-4" id="servicesTabContent">
+      {{ range $i, $page := $pages }}
+      <div class="tab-pane fade{{ if eq $i 0 }} show active{{ end }}" id="services-pane-{{ $i }}" role="tabpanel" aria-labelledby="services-tab-{{ $i }}">
+        <h2 class="text-primary">{{ $page.Title }}</h2>
+        {{ $page.Content }}
+        {{ with $page.Params.link }}<p>Link: <a href="{{ . }}" target="_blank" rel="noopener noreferrer">{{ . }}</a></p>{{ end }}
+        {{ partial "techtags" $page }}
+      </div>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+</section>
+{{ end }}

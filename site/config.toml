@@ -1,0 +1,129 @@
+# Your site's project config. The theme itself lives one directory up in
+# ../hugo-resume and is left untouched -- customizations specific to this
+# site live here and in ./layouts (which extend, not replace, the theme).
+themesDir = ".."
+theme = "hugo-resume"
+
+title = "DJ's Personal Page"                # TODO: replace with your real name/brand
+baseURL = "https://dkobashi.github.io/"   # TODO: replace with your real domain
+languageCode = "en-us"
+enableGitInfo = false
+
+[params]
+description = "Independent consultant -- ocean modeling, metocean, operational forecasting, data analysis and machine learning." # TODO: refine
+tagline = "Transforming metocean data into actionable insights."
+firstName = "DJ"
+lastName = "Kobashi, Ph.D."
+# profileImage = "img/dj_photo1.jpg"
+profileImage = "img/dj_avater_2.png"
+# Kept as a fallback if expertiseSlides below is ever emptied out.
+heroImage = "img/ocean-flow-hero.webp"
+heroImageAlt = "Animated illustration of ocean current flow around eddies"
+favicon = "/favicon.ico"
+showQr = false
+showContact = false
+showBoards = false
+showCertifications = false
+showSocializations = true
+
+# Homepage stays short: just the About/bio partial. Everything else is a
+# real page reached via top nav (customSections below), not a scroll-anchor.
+sections = []
+
+vcardfields = [
+    "name",
+    "url"
+]
+
+# Rotating showcase on the homepage (see layouts/partials/expertiseCarousel.html).
+# Forecasting/Software/Metocean backgrounds are original synthetic/illustrative
+# graphics generated for this site (copyright-free) -- not real model output or
+# photos. Modeling and Research now use real images (see notes below).
+[[params.expertiseSlides]]
+    title = "Operational Ocean Forecasting"
+    subtitle = "Running and delivering forecast systems"
+    image = "img/slide-forecasting.jpg"
+
+# Real figure: Texas-Louisiana shelf ROMS domain (parent/child grid) and
+# surface vorticity, from the author's own regional modeling work.
+[[params.expertiseSlides]]
+    title = "Ocean Modeling"
+    subtitle = "Unstructured-mesh circulation, wave & hindcast models"
+    image = "img/slide-modeling.jpg"
+
+[[params.expertiseSlides]]
+    title = "Scientific Software Development"
+    subtitle = "Tools and pipelines for ocean/metocean data"
+    image = "img/slide-software.jpg"
+
+# Real photo: NOAA/PMEL TAO mooring repair (public domain, NOAA Photo
+# Library, photographer Linda Stratton), via Wikimedia Commons.
+[[params.expertiseSlides]]
+    title = "Research"
+    subtitle = "Coastal & ocean processes, published and presented"
+    image = "img/slide-research.jpg"
+
+[[params.expertiseSlides]]
+    title = "Metocean Data Analysis"
+    subtitle = "Turning observations and model output into decisions"
+    image = "img/slide-metocean.jpg"
+
+# Top navigation, in the order requested in Website_Structure.txt.
+# "About" is a real page at /about/ (see content/about.md); Home is the
+# short landing page (this file) with the name/tagline/bio + showcase.
+[[params.customSections]]
+    name = "Services"
+    url  = "/services/"
+
+[[params.customSections]]
+    name = "Products"
+    url  = "/products/"
+
+[[params.customSections]]
+    name = "Portfolio"
+    url  = "/portfolio/"
+
+[[params.customSections]]
+    name = "Publications"
+    url  = "/publications/"
+
+[[params.handles]]
+    name = "LinkedIn"
+    link = "https://www.linkedin.com/in/daijiro-kobashi-34b92331"
+
+[[params.handles]]
+    name = "GitHub"
+    link = "https://github.com/dkobashi"
+
+[[params.handles]]
+    name = "Google Scholar"
+    link = "https://scholar.google.com/citations?user=Dg-UIeAAAAAJ"
+    icon = "googlescholar"
+
+[[params.handles]]
+    name = "ORCID"
+    link = "https://orcid.org/0000-0001-6348-1575"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      # Allows raw HTML in Markdown content (e.g. the custom "What I Do"
+      # table on the About page) -- safe here since all content is your own.
+      unsafe = true
+
+[outputs]
+home = ["HTML", "JSON"]
+
+[taxonomies]
+tag = "tags"
+
+[mediaTypes]
+  [mediaTypes."text/vcard"]
+    suffixes = ["vcf"]
+
+[outputFormats]
+  [outputFormats.VCard]
+    mediaType = "text/vcard"
+    baseName = "contact"
+    isPlainText = true
+    notAlternative = true

@@ -1,0 +1,18 @@
+<div id="expertiseCarousel" class="carousel slide carousel-fade mt-4 rounded shadow-sm overflow-hidden" data-ride="carousel" data-interval="4000" data-pause="hover">
+  <div class="carousel-inner">
+    {{ range $i, $slide := .Site.Params.expertiseSlides }}
+    <div class="carousel-item{{ if eq $i 0 }} active{{ end }}">
+      <img src="{{ $slide.image | relURL }}" class="d-block w-100" alt="{{ $slide.title }}" style="height:420px;object-fit:cover;">
+      <div class="carousel-caption expertise-caption">
+        <h5 class="mb-0">{{ $slide.title }}</h5>
+        {{ with $slide.subtitle }}<p class="mb-0 small">{{ . }}</p>{{ end }}
+      </div>
+    </div>
+    {{ end }}
+  </div>
+  <ol class="carousel-indicators">
+    {{ range $i, $slide := .Site.Params.expertiseSlides }}
+    <li data-target="#expertiseCarousel" data-slide-to="{{ $i }}"{{ if eq $i 0 }} class="active"{{ end }}></li>
+    {{ end }}
+  </ol>
+</div>

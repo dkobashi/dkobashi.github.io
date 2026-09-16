@@ -1,0 +1,30 @@
+---
+title: "Shoreline Assessments"
+date: 2026-01-01
+description: "[TODO: one or two sentence summary of Shoreline Assessments, shown on the Services list page.]"
+tags: []
+link: ""
+weight: 50
+---
+
+## Overview
+Shoreline assessments combine three complementary approaches: satellite-derived shoreline change analysis over both short-term (storm/event) and long-term (multi-year to decadal) timescales, regional sediment transport modeling (e.g. SCHISM-WWM) to characterize the wave, current, and sediment-transport processes driving that change, and physics-based beach morphodynamic modeling — using XBeach for short-term, storm-scale simulation of beach and dune response — checked against real survey data rather than idealized or "reasonable-looking" outcomes.
+
+## What I Can Provide
+- Short-term and long-term shoreline change analysis from satellite imagery
+- Regional sediment transport modeling (e.g. SCHISM-WWM) to characterize the wave, current, and sediment-transport drivers of shoreline change
+- Beach and dune morphodynamic modeling, with XBeach for short-term/storm-scale response
+- Nested regional-to-local modeling: a regional storm-surge and wave hindcast or forecast feeding a high-resolution beach-profile model
+- Validation against pre- and post-storm topographic surveys (e.g. airborne lidar) and/or satellite-derived shorelines
+- Shoreline change and dune-erosion risk assessment for coastal engineering and resilience planning
+
+## Example System
+See [Rebuilding Hurricane Ike at Rollover Pass](/portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/) for short-term, storm-scale XBeach modeling validated against airborne lidar, and [Coastal Hydrodynamic](/portfolio/independent-projects/hurricane-ike-schism-wwm-nested-validation/) for coupled wave-hydrodynamics-sediment transport modeling, [Fine Sediment Dynamics](/portfolio/research/fine-sediment-dynamics/) for research dealing with sediment transport.
+
+## Typical Applications
+- Coastal resilience and vulnerability assessment
+- Beach nourishment and dune restoration design
+- Storm-impact and inundation risk assessment
+- Coastal infrastructure siting and permitting support
+
+<!-- [TODO: full write-up of this service.] -->

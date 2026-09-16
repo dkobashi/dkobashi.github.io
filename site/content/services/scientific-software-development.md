@@ -1,0 +1,19 @@
+---
+title: "Scientific Software Development"
+date: 2026-01-01
+description: "[TODO: one or two sentence summary of Scientific Software Development, shown on the Services list page.]"
+tags: []
+link: ""
+weight: 40
+---
+
+## Overview
+I develop metocean tools based on Python to meet client needs. They can be python workflows consisting of a series of scripts or GUI based tools. They can be visualization tools, metocean analysis tools, modeling tools, or post-processing tools. I usually develop such tools on top of publicly available tools. 
+
+## What I can provide
+- Executable file or a series of Python scripts.
+
+## Examples
+- [OCSmesh GUI](/products/software/ocsmesh-gui/)
+- [Ocean Model Viewer](/products/software/ocean-model-viewer/)
+- [MOSAIC](/products/software/mosaic/)

@@ -1,0 +1,14 @@
+<div class="showcase-card d-flex flex-column flex-md-row">
+  <div class="showcase-card-desc">
+    <h3><a href="{{ .Permalink }}">{{ .Title }}</a>{{ with .Params.subtitle }} <span class="text-muted" style="font-size:0.6rem;">({{ . }})</span>{{ end }}</h3>
+    <p>{{ .Params.description | markdownify }}</p>
+    <div>{{ partial "techtags" . }}</div>
+  </div>
+  <div class="showcase-card-image">
+    {{ with .Params.image }}
+      <a href="{{ $.Permalink }}"><img src="{{ . }}" alt="{{ $.Title }}"/></a>
+    {{ else }}
+      <a href="{{ $.Permalink }}" class="showcase-card-image-placeholder">{{ $.Title }}</a>
+    {{ end }}
+  </div>
+</div>
