@@ -16,6 +16,16 @@ h2 {
   font-size: 1.85rem;
 }
 
+/* Theme's #sideNav .navbar-collapse is flex-row (only its .navbar-nav
+   child is forced to a column), so a second child -- our social-icon row
+   in nav.html -- would sit beside the nav links instead of below them.
+   Force the collapse container itself to stack vertically too. */
+@media (min-width: 992px) {
+  #sideNav .navbar-collapse {
+    flex-direction: column;
+  }
+}
+
 /* Social/professional icon row (see layouts/partials/about.html): every
    icon is rendered as an inline SVG from data/icons.yaml (Simple Icons
    path data) so all of them share one consistent flat-vector style --
