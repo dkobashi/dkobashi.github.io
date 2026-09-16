@@ -68,7 +68,7 @@ site.] -->
 
 ## Let's Work Together
 
-I am open to opportunities to work as a consultant, a contractor, or a full-time employee. If you are interested in, please contact me on LinkedIn.
+I am open to opportunities to work as a consultant, a contractor, or a full-time employee. If you are interested in, please contact me on [LinkedIn](https://www.linkedin.com/in/daijiro-kobashi-34b92331).
 
 <!-- [TODO: closing line inviting the reader to reach out -- link to
 [Services](/services/), or your social/professional channels.]

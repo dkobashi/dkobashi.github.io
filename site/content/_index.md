@@ -7,7 +7,7 @@ outputs:
 - rss
 - json
 ---
-Independent consultant in ocean modeling, operational forecasting, and
+Independent scientist in ocean modeling, operational forecasting, and
 metocean data analysis. I build the models, software, and workflows that
 turn ocean and weather data into actionable insights and informed
 decisions.
