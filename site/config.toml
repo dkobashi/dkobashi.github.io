@@ -25,6 +25,12 @@ showContact = false
 showBoards = false
 showCertifications = false
 showSocializations = true
+# Footer visit-count badge (see layouts/_default/baseof.html) -- a static
+# <img> from visitor-badge.laobi.icu, no account/signup needed. It just
+# increments a counter keyed by visitorBadgeID; no cookies, no personal
+# data collected, no consent banner needed.
+showVisitorBadge = true
+visitorBadgeID = "dkobashi.github.io"
 
 # Homepage stays short: just the About/bio partial. Everything else is a
 # real page reached via top nav (customSections below), not a scroll-anchor.

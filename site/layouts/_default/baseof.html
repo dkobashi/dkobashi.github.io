@@ -50,6 +50,11 @@
     {{ end }}
     <section><span style="color: #999999;">Nifty <a href="https://codepen.io/wbeeftink/pen/dIaDH" target="_blank" rel="noopener noreferrer">tech tag lists</a> from <a class="pen-owner-link" href="https://codepen.io/wbeeftink" target="_blank" rel="noopener noreferrer">Wouter Beeftink</a> </span>
       {{ with $.GitInfo }}{{ with $.Site.Params.gitCommitPrefix }} | <span style="color: #999999;;">Page content generated from commit: <a href="{{ . }}/{{ $.GitInfo.AbbreviatedHash }}" title="log: {{ $.GitInfo.Subject }}">{{ $.GitInfo.AbbreviatedHash }}</a>{{ end }}{{end}}
+      {{ if .Site.Params.showVisitorBadge }}
+      <span class="ml-2">
+        <img src="https://visitor-badge.laobi.icu/badge?page_id={{ .Site.Params.visitorBadgeID | default (printf "%s.visits" .Site.Title) }}&left_text=site%20visits" alt="Site visit count" loading="lazy" style="vertical-align:middle;">
+      </span>
+      {{ end }}
     </section>
   </div>
   <!-- Bootstrap core JavaScript -->
