@@ -2,14 +2,14 @@
 title: "Influence of Mississippi and Atchafalaya River plume in the winter coastal cooling of the Northwestern Gulf of Mexico"
 date: 2020-01-01
 pubtype: "Journal Article"
-description: "D. Fernandez-Novoa, X. Costoya, D. Kobashi, L. Rodriguez-Diaz, M. DeCastro, M. Gomez-Gesteira — Journal of Marine Systems"
+description: "Fernandez-Novoa, D., Costoya, X.,Kobashi, D., Rodriguez-Diaz, L., DeCastro, M., Gomez-Gesteira, M. — Journal of Marine Systems"
 tags: []
 link: "/pubs/fernandez-novoa-2020.pdf"
 image: ""
 weight: 30
 ---
 
-**Authors:** D. Fernandez-Novoa, X. Costoya, D. Kobashi, L. Rodriguez-Diaz, M. DeCastro, M. Gomez-Gesteira
+**Authors:** Fernandez-Novoa, D., Costoya, X., Kobashi, D., Rodriguez-Diaz, L., DeCastro, M., Gomez-Gesteira, M.
 
 **Published in:** Journal of Marine Systems (2020)
 

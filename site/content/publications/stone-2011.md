@@ -2,13 +2,13 @@
 title: "Wave-Bottom Interactions and Bottom Boundary Layer Dynamics in Evaluating Sand Mining at Sabine Bank for Coastal Restoration, Southwest Louisiana"
 date: 2011-01-01
 pubtype: "Report"
-description: "G.W. Stone, D. Kobashi, F. Jose, B. Liu, S.M. SiadatMousavi, A.L. Spaziani"
+description: "Stone, G.W., Kobashi, D., Jose, F., Liu, B., SiadatMousavi, S.M., Spaziani, A.L."
 tags: []
 link: ""
 image: ""
 weight: 70
 ---
 
-**Authors:** G.W. Stone, D. Kobashi, F. Jose, B. Liu, S.M. SiadatMousavi, A.L. Spaziani
+**Authors:** Stone, G.W., Kobashi, D., Jose, F., Liu, B., SiadatMousavi, S.M., Spaziani, A.L.
 
 [Abstract not available.]

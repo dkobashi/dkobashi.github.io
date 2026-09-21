@@ -9,7 +9,7 @@ image: ""
 weight: 50
 ---
 
-**Authors:** D. Kobashi, F. Jose
+**Authors:** Kobashi, D., Jose, F.
 
 **Published in:** Journal of Coastal Research (2018)
 
