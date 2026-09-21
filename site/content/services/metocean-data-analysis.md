@@ -13,7 +13,7 @@ I collect metocean data from various public available sources such as NDBC buoys
 ## What I can do
 - Time series Analysis
 - Statistical Analysis
-- Operational Analysis (Climatology)
+- Operational Analysis
 - Extreme Value Analysis
 - Model validation and calibration using Machine Learning
 
@@ -34,7 +34,7 @@ I collect metocean data from various public available sources such as NDBC buoys
 See [MOSAIC](/products/software/mosaic/) for the framework I use to run model validation and calibration systematically. I am also currently developing a metocean design criteria tool consisting of EVA, directional extremes, environmental contours, and operational analysis. Stay tuned.
 
 ## What I can provide 
-- Design criteria development
+- Design criteria
 - Site characterization
 - Extreme value analysis
 - Model validation and calibration

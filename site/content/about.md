@@ -5,7 +5,7 @@ sitemap:
 ---
 
 I help organizations transform metocean data into reliable decision support through numerical modeling, operational forecasting, scientific software, and metocean analysis. With more than 15 years of experience spanning consulting and research, I develop technical solutions for offshore energy, coastal infrastructure, and environmental applications.
-I hold a PhD in Physical Oceanography from Louisiana State University. For over a decade, I worked as a research scientist in the Department of Oceanography at Texas A&M University, developing regional ocean forecast systems and studying coastal ocean dynamics — from submesoscale frontal eddies to boundary-layer mixing and ocean acidification. That combination of applied modeling and research is what led me to go independent, so I could bring the same technical depth directly to clients across offshore energy, coastal infrastructure, and environmental projects.
+I hold a PhD in Physical Oceanography from Louisiana State University. For over a decade, I worked as a research scientist in the Department of Oceanography at Texas A&M University, developing regional ocean forecast systems and studying coastal ocean dynamics — from submesoscale frontal eddies to boundary-layer mixing and ocean acidification. Recently, I worked at a consulting company dealing with metocean design criteria and site characterization utilizing modeling and publicly available datasets. That combination of applied modeling, research, and consulting is what I can bring to various clients across offshore energy, coastal infrastructure, and environmental projects.
 
 ## What I Do
 
@@ -59,7 +59,7 @@ starter categories based on the products/portfolio work already on this
 site.] -->
 
 - **Metocean Analytics:** Design criteria, site characterization, hindcast/forecast systems, coastal processes
-- **Numerical Model:** ROMS, Delft3D, SCHISM-WWM, SWAN, ADCIRC-SWAN, CROCO, DHI MIKE
+- **Numerical Model:** ROMS, Delft3D, SCHISM-WWM, SWAN, ADCIRC-SWAN, XBeach, SFINCS, CROCO, DHI MIKE
 - **Programming:** Python, MATLAB, Fortran, Bash
 - **Data Science & AI:** Xarray, Scikit-Learn, PyTorch, Dask, Pandas
 - **HPC & Cloud:** Linux, HPC, Amazon Web Services (AWS)
@@ -73,3 +73,4 @@ I am open to opportunities to work as a consultant, a contractor, or a full-time
 <!-- [TODO: closing line inviting the reader to reach out -- link to
 [Services](/services/), or your social/professional channels.]
  -->
+ 

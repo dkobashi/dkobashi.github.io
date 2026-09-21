@@ -1,5 +1,5 @@
 ---
-title: "Beach Morphology Model (XBeach)"
+title: "Beach Morphology Modeling (XBeach)"
 date: 2026-01-01
 description: "A physics-based beach and dune morphodynamic modeling capability using XBeach, simulating storm-driven shoreline and dune erosion for coastal risk and resilience assessments."
 tags: []

@@ -19,7 +19,7 @@ Shoreline assessments combine three complementary approaches: satellite-derived 
 - Shoreline change and dune-erosion risk assessment for coastal engineering and resilience planning
 
 ## Example System
-See [Rebuilding Hurricane Ike at Rollover Pass](/portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/) for short-term, storm-scale XBeach modeling validated against airborne lidar, and [Fine Sediment Dynamics](/portfolio/research/fine-sediment-dynamics/) for satellite-imagery-based analysis of storm-driven sediment transport.
+See [Rebuilding Hurricane Ike at Rollover Pass](/portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/) for short-term, storm-scale XBeach modeling validated against airborne lidar, and [Fine Sediment Dynamics](/portfolio/research/fine-sediment-dynamics/) for modeling waves and hydrodynamics in combination with sediment dynamics of sand and mud.
 
 ## Typical Applications
 - Coastal resilience and vulnerability assessment

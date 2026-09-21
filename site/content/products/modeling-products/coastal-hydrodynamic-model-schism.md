@@ -1,5 +1,5 @@
 ---
-title: "Coastal Hydrodynamic Model (ROMS; SCHISM; ADCIRC)"
+title: "Coastal Hydrodynamic Modeling (ROMS; SCHISM; ADCIRC)"
 date: 2026-01-01
 description: "A multi-model coastal and shelf hydrodynamics capability, matched to the region and physics needed — ROMS for 3D shelf circulation, SCHISM-WWM for general-purpose coastal/estuarine circulation, and ADCIRC for storm surge and inundation modeling."
 tags: []

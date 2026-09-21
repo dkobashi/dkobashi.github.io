@@ -35,3 +35,5 @@ I build lightweight, purpose-fit visualization tools when the standard options f
 ## Tutorial
 - A tutorial video is available here and also on the Resources page.
 
+## How to get
+- Ocean-Model-Viewer is freely available as an executable file. Details are on [my github page](https://github.com/dkobashi/ocean-model-viewer)

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hurricane Harvey: WW3 to SWAN Grid Intercomparison | DJ Kobashi</title>
+<meta name="description" content="Structured vs. unstructured regional WAVEWATCH III grids nested into SWAN at Galveston for Hurricane Harvey, checked against NDBC buoys.">
+<link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f6f5f1;
+  --surface-1: #ffffff;
+  --surface-2: #edece5;
+  --border: #dedcd2;
+  --text-primary: #16181a;
+  --text-secondary: #52534d;
+  --text-muted: #83837a;
+  --accent: #1e5a8f;
+  --series-structured: #2a78d6;
+  --series-unstructured: #eb6834;
+  --series-obs: #1baf7a;
+  --good: #1baf7a;
+  --serious: #e34948;
+  --chart-grid: #e4e2d8;
+}
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+    --surface-0: #131412; --surface-1: #1a1b18; --surface-2: #212220;
+    --border: #34362f; --text-primary: #f3f2ec; --text-secondary: #c3c2b7;
+    --text-muted: #8b8b80; --accent: #6fb0e8;
+    --series-structured: #3987e5; --series-unstructured: #d95926; --series-obs: #199e70;
+    --good: #199e70; --serious: #e66767; --chart-grid: #2b2d27;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #131412; --surface-1: #1a1b18; --surface-2: #212220;
+  --border: #34362f; --text-primary: #f3f2ec; --text-secondary: #c3c2b7;
+  --text-muted: #8b8b80; --accent: #6fb0e8;
+  --series-structured: #3987e5; --series-unstructured: #d95926; --series-obs: #199e70;
+  --good: #199e70; --serious: #e66767; --chart-grid: #2b2d27;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--surface-0); color: var(--text-primary);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0;
+  line-height: 1.55;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
+h1, h2, h3 { font-family: "Spectral", ui-serif, Georgia, serif; text-wrap: balance; font-weight: 600; color: var(--text-primary); }
+header.hero { padding: 56px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
+.eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 14px; }
+h1 { font-size: 42px; margin: 0 0 10px; line-height: 1.08; }
+.subtitle { font-size: 17px; color: var(--text-secondary); max-width: 680px; margin: 0 0 28px; }
+.landfall-strip { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface-1); }
+.landfall-stat { flex: 1 1 140px; padding: 16px 20px; border-right: 1px solid var(--border); }
+.landfall-stat:last-child { border-right: none; }
+.landfall-stat .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+.landfall-stat .value { font-family: "IBM Plex Mono", monospace; font-size: 19px; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+section { margin-bottom: 52px; }
+section > h2 { font-size: 25px; margin: 0 0 6px; }
+.section-note { color: var(--text-secondary); font-size: 15.5px; max-width: 720px; margin: 0 0 24px; }
+.summary-box { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 24px 26px; margin-bottom: 44px; }
+.summary-box h2 { margin-top: 0; font-size: 21px; }
+.summary-box p { color: var(--text-secondary); font-size: 15.5px; margin: 10px 0 0; max-width: 760px; }
+.chain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: "IBM Plex Mono", monospace; font-size: 13px; margin: 18px 0 0; }
+.chain .node { border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; background: var(--surface-2); color: var(--text-primary); }
+.chain .arrow { color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 18px 0 8px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+td.num, th.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; }
+.table-wrap { overflow-x: auto; }
+.mesh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin: 18px 0; }
+.mesh-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.mesh-card img { width: 100%; display: block; }
+.mesh-card .cap { padding: 12px 16px; font-size: 13px; color: var(--text-secondary); }
+.mesh-card .cap strong { color: var(--text-primary); }
+.loc-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; margin: 0 0 26px; }
+.loc-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.loc-head h3 { font-size: 18px; margin: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+.loc-domain { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.loc-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
+.legend { display: flex; gap: 18px; font-size: 12.5px; color: var(--text-secondary); margin: 0 0 10px; flex-wrap: wrap; }
+.legend .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.chart-triplet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.chart-mini h4 { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.chart-mini .peakline { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.chart-mini .peakline b { color: var(--text-primary); font-weight: 500; }
+.chart-svg-wrap { position: relative; }
+.tooltip { position: absolute; pointer-events: none; background: var(--text-primary); color: var(--surface-1); font-family: "IBM Plex Mono", monospace; font-size: 11.5px; padding: 6px 9px; border-radius: 6px; transform: translate(-50%, -112%); white-space: nowrap; opacity: 0; transition: opacity 0.08s; z-index: 5; }
+.note-box { border-left: 3px solid var(--accent); background: var(--surface-1); border-radius: 0 8px 8px 0; padding: 16px 20px; font-size: 14.5px; color: var(--text-secondary); margin: 18px 0 0; }
+.note-box strong { color: var(--text-primary); }
+code { font-family: "IBM Plex Mono", monospace; font-size: 0.92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+footer { color: var(--text-muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 20px; }
+.buoy-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; margin: 0 0 26px; }
+.buoy-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 2px; }
+.buoy-head h3 { font-size: 18px; margin: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+.buoy-id { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); }
+.buoy-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
+.buoy-quad { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.buoy-param h4 { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.buoy-param-note { font-size: 11.5px; color: var(--text-muted); margin: 0 0 6px; font-style: italic; }
+.buoy-stat-line { display: flex; gap: 16px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-muted); margin-top: 5px; flex-wrap: wrap; }
+.buoy-stat-line b { color: var(--text-primary); font-weight: 500; }
+.buoy-stat-line .win { color: var(--good); font-weight: 600; }
+.win { color: var(--good); font-weight: 600; }
+@media (max-width: 640px) { .buoy-quad { grid-template-columns: 1fr; } }
+.verdict-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 14px; margin: 18px 0; }
+.verdict-tile { background: var(--surface-2); border-radius: 10px; padding: 16px 18px; }
+.verdict-tile .vk { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+.verdict-tile .vv { font-family: "IBM Plex Mono", monospace; font-size: 22px; color: var(--text-primary); }
+.verdict-tile .vd { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; }
+.recommend-box { background: var(--surface-1); border: 1px solid var(--good); border-radius: 12px; padding: 22px 24px; margin-top: 8px; }
+.recommend-box h3 { margin: 0 0 8px; font-size: 17px; }
+.recommend-box p { color: var(--text-secondary); font-size: 15px; margin: 0; }
+@media (max-width: 760px) {
+  .chart-triplet { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  h1 { font-size: 32px; }
+  .landfall-stat { flex-basis: 45%; }
+}
+.site-back { padding: 18px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; color: var(--text-muted); }
+.site-back a { color: var(--accent); text-decoration: none; }
+.site-back a:hover { text-decoration: underline; }
+</style>
+<script>
+function fmtTime(iso, withDate) {
+  const d = new Date(iso + 'Z');
+  const hh = String(d.getUTCHours()).padStart(2,'0');
+  if (!withDate) return hh + ':00';
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  return `${mm}/${dd} ${hh}:00`;
+}
+
+function drawMiniChart(elId, times, seriesA, seriesB, opts) {
+  const root = document.getElementById(elId);
+  const W = root.clientWidth || 300, H = 150;
+  const padL = 34, padR = 8, padT = 8, padB = 22;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = times.length;
+  const allVals = seriesA.concat(seriesB).filter(v => v===v);
+  const minV = opts.zeroBased === false ? Math.min(...allVals) * 0.95 : 0;
+  const maxV = Math.max(...allVals) * 1.12;
+  const x = i => padL + (i/(n-1)) * plotW;
+  const y = v => padT + plotH - ((v-minV)/(maxV-minV)) * plotH;
+
+  const svgns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', H);
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+
+  const gridColor = getComputedStyle(document.body).getPropertyValue('--chart-grid').trim();
+  const mutedColor = getComputedStyle(document.body).getPropertyValue('--text-muted').trim();
+
+  const yTicks = 3;
+  for (let t = 0; t <= yTicks; t++) {
+    const v = minV + ((maxV-minV)/yTicks)*t;
+    const yy = y(v);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', W-padR);
+    line.setAttribute('y1', yy); line.setAttribute('y2', yy);
+    line.setAttribute('stroke', gridColor); line.setAttribute('stroke-width', 1);
+    svg.appendChild(line);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', padL - 6); label.setAttribute('y', yy + 3.5);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace');
+    label.setAttribute('fill', mutedColor);
+    label.textContent = v.toFixed(opts.decimals != null ? opts.decimals : 1);
+    svg.appendChild(label);
+  }
+
+  for (let i = 0; i < n; i += 24) {
+    const xx = x(i);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', xx); label.setAttribute('y', H - 6);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace');
+    label.setAttribute('fill', mutedColor);
+    label.textContent = fmtTime(times[i], true);
+    svg.appendChild(label);
+  }
+
+  if (opts.landfallIndex != null) {
+    const lx = x(opts.landfallIndex);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', lx); line.setAttribute('x2', lx);
+    line.setAttribute('y1', padT); line.setAttribute('y2', padT+plotH);
+    line.setAttribute('stroke', mutedColor); line.setAttribute('stroke-width', 1);
+    line.setAttribute('stroke-dasharray', '2,3');
+    svg.appendChild(line);
+  }
+
+  function drawSeries(series, color) {
+    if (opts.dots) {
+      for (let i = 0; i < n; i += 2) {
+        if (series[i] !== series[i]) continue;
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', x(i)); c.setAttribute('cy', y(series[i]));
+        c.setAttribute('r', 1.6); c.setAttribute('fill', color); c.setAttribute('opacity', 0.85);
+        svg.appendChild(c);
+      }
+      return;
+    }
+    let d = '', started = false;
+    for (let i = 0; i < n; i++) {
+      if (series[i] !== series[i]) { started = false; continue; }
+      d += (!started ? 'M' : 'L') + x(i).toFixed(2) + ',' + y(series[i]).toFixed(2) + ' ';
+      started = true;
+    }
+    const p = document.createElementNS(svgns, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', color); p.setAttribute('stroke-width', 1.8);
+    p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  }
+  const cStruct = getComputedStyle(document.body).getPropertyValue('--series-structured').trim();
+  const cUnstruct = getComputedStyle(document.body).getPropertyValue('--series-unstructured').trim();
+  drawSeries(seriesA, cStruct);
+  drawSeries(seriesB, cUnstruct);
+
+  const hoverLine = document.createElementNS(svgns, 'line');
+  hoverLine.setAttribute('y1', padT); hoverLine.setAttribute('y2', padT+plotH);
+  hoverLine.setAttribute('stroke', mutedColor); hoverLine.setAttribute('stroke-width', 1); hoverLine.setAttribute('opacity', 0);
+  svg.appendChild(hoverLine);
+  const dotA = document.createElementNS(svgns, 'circle');
+  dotA.setAttribute('r', 3); dotA.setAttribute('fill', cStruct); dotA.setAttribute('opacity', 0);
+  svg.appendChild(dotA);
+  const dotB = document.createElementNS(svgns, 'circle');
+  dotB.setAttribute('r', 3); dotB.setAttribute('fill', cUnstruct); dotB.setAttribute('opacity', 0);
+  svg.appendChild(dotB);
+
+  root.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-svg-wrap';
+  wrap.appendChild(svg);
+  const tip = document.createElement('div');
+  tip.className = 'tooltip';
+  wrap.appendChild(tip);
+  root.appendChild(wrap);
+
+  svg.addEventListener('mousemove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    let i = Math.round(((mx - padL) / plotW) * (n-1));
+    i = Math.max(0, Math.min(n-1, i));
+    const va = seriesA[i], vb = seriesB[i];
+    hoverLine.setAttribute('x1', x(i)); hoverLine.setAttribute('x2', x(i)); hoverLine.setAttribute('opacity', 1);
+    if (va===va) { dotA.setAttribute('cx', x(i)); dotA.setAttribute('cy', y(va)); dotA.setAttribute('opacity', 1); } else dotA.setAttribute('opacity',0);
+    if (vb===vb) { dotB.setAttribute('cx', x(i)); dotB.setAttribute('cy', y(vb)); dotB.setAttribute('opacity', 1); } else dotB.setAttribute('opacity',0);
+    tip.style.opacity = 1;
+    tip.style.left = ((x(i)/W)*rect.width) + 'px';
+    tip.style.top = ((y(Math.max(va||minV,vb||minV))/H)*rect.height) + 'px';
+    const unit = opts.unit || '';
+    tip.innerHTML = `${fmtTime(times[i], true)}<br>${va===va?va.toFixed(1):'-'}${unit} / ${vb===vb?vb.toFixed(1):'-'}${unit}`;
+  });
+  svg.addEventListener('mouseleave', () => {
+    hoverLine.setAttribute('opacity', 0); dotA.setAttribute('opacity', 0); dotB.setAttribute('opacity', 0);
+    tip.style.opacity = 0;
+  });
+}
+
+function drawBuoyChart(elId, times, obs, seriesA, seriesB, opts) {
+  opts = opts || {};
+  const root = document.getElementById(elId);
+  const W = root.clientWidth || 320, H = 150;
+  const padL = 36, padR = 8, padT = 8, padB = 20;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = times.length;
+  const allVals = obs.concat(seriesA, seriesB).filter(v => v === v && v !== null);
+  const minV = opts.zeroBased === false ? Math.min(...allVals) * (Math.min(...allVals) > 0 ? 0.95 : 1.05) : 0;
+  const maxV = Math.max(...allVals) * 1.12;
+  const x = i => padL + (i/(n-1)) * plotW;
+  const y = v => padT + plotH - ((v-minV)/(maxV-minV)) * plotH;
+  const dp = opts.decimals != null ? opts.decimals : 1;
+
+  const svgns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', H);
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+
+  const gridColor = getComputedStyle(document.body).getPropertyValue('--chart-grid').trim();
+  const mutedColor = getComputedStyle(document.body).getPropertyValue('--text-muted').trim();
+
+  for (let t = 0; t <= 3; t++) {
+    const v = minV + ((maxV-minV)/3)*t, yy = y(v);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', W-padR);
+    line.setAttribute('y1', yy); line.setAttribute('y2', yy);
+    line.setAttribute('stroke', gridColor); line.setAttribute('stroke-width', 1);
+    svg.appendChild(line);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', padL - 6); label.setAttribute('y', yy + 3.5);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace'); label.setAttribute('fill', mutedColor);
+    label.textContent = v.toFixed(dp);
+    svg.appendChild(label);
+  }
+  for (let i = 0; i < n; i += 24) {
+    const xx = x(i);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', xx); label.setAttribute('y', H - 6);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace'); label.setAttribute('fill', mutedColor);
+    label.textContent = fmtTime(times[i], true);
+    svg.appendChild(label);
+  }
+
+  function linePath(series, color) {
+    let d = '', started = false;
+    for (let i = 0; i < n; i++) {
+      const v = series[i];
+      if (v === null || v !== v) { started = false; continue; }
+      d += (!started ? 'M' : 'L') + x(i).toFixed(2) + ',' + y(v).toFixed(2) + ' ';
+      started = true;
+    }
+    const p = document.createElementNS(svgns, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', color); p.setAttribute('stroke-width', 1.8);
+    p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  }
+  const cStruct = getComputedStyle(document.body).getPropertyValue('--series-structured').trim();
+  const cUnstruct = getComputedStyle(document.body).getPropertyValue('--series-unstructured').trim();
+  const cObs = getComputedStyle(document.body).getPropertyValue('--series-obs').trim();
+  if (opts.dots) {
+    // circular (MWD): connecting lines across the 0/360 wrap would be misleading, so
+    // model series are also shown as discrete markers here, not connected lines.
+    for (let i = 0; i < n; i++) {
+      for (const [series, color] of [[seriesA, cStruct], [seriesB, cUnstruct]]) {
+        const v = series[i];
+        if (v === null || v !== v) continue;
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', x(i)); c.setAttribute('cy', y(v)); c.setAttribute('r', 1.8);
+        c.setAttribute('fill', color); c.setAttribute('opacity', 0.85);
+        svg.appendChild(c);
+      }
+    }
+  } else {
+    linePath(seriesA, cStruct);
+    linePath(seriesB, cUnstruct);
+  }
+  // observations as discrete markers throughout -- measured, not modeled continuously
+  for (let i = 0; i < n; i++) {
+    const v = obs[i];
+    if (v === null || v !== v) continue;
+    const c = document.createElementNS(svgns, 'circle');
+    c.setAttribute('cx', x(i)); c.setAttribute('cy', y(v)); c.setAttribute('r', 2.4);
+    c.setAttribute('fill', cObs); c.setAttribute('opacity', 0.9);
+    svg.appendChild(c);
+  }
+
+  root.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-svg-wrap';
+  wrap.appendChild(svg);
+  const tip = document.createElement('div');
+  tip.className = 'tooltip';
+  wrap.appendChild(tip);
+  root.appendChild(wrap);
+
+  const hoverLine = document.createElementNS(svgns, 'line');
+  hoverLine.setAttribute('y1', padT); hoverLine.setAttribute('y2', padT+plotH);
+  hoverLine.setAttribute('stroke', mutedColor); hoverLine.setAttribute('stroke-width', 1); hoverLine.setAttribute('opacity', 0);
+  svg.appendChild(hoverLine);
+
+  svg.addEventListener('mousemove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    let i = Math.round(((mx - padL) / plotW) * (n-1));
+    i = Math.max(0, Math.min(n-1, i));
+    hoverLine.setAttribute('x1', x(i)); hoverLine.setAttribute('x2', x(i)); hoverLine.setAttribute('opacity', 1);
+    tip.style.opacity = 1;
+    tip.style.left = ((x(i)/W)*rect.width) + 'px';
+    tip.style.top = '4px';
+    const unit = opts.unit || '';
+    const fv = v => (v===null||v!==v) ? '&ndash;' : v.toFixed(dp);
+    tip.innerHTML = `${fmtTime(times[i], true)}<br>obs ${fv(obs[i])}${unit} &middot; struct ${fv(seriesA[i])}${unit} &middot; unstruct ${fv(seriesB[i])}${unit}`;
+  });
+  svg.addEventListener('mouseleave', () => { hoverLine.setAttribute('opacity', 0); tip.style.opacity = 0; });
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+<nav class="site-back"><a href="/portfolio/independent-projects/harvey-ww3-swan-grid-intercomparison/">&larr; Back to the portfolio item</a> &middot; <a href="/">DJ Kobashi</a></nav>
+
+<header class="hero">
+  <p class="eyebrow">WW3 &rarr; SWAN nested wave model &middot; grid intercomparison</p>
+  <h1>Hurricane Harvey (2017)</h1>
+  <p class="subtitle">Structured vs. unstructured regional grid sensitivity for a Gulf-of-Mexico&ndash;to&ndash;Galveston
+  nested wave forecast &mdash; H<sub>s</sub>, wave period, and mean direction at four locations spanning deep water
+  to the harbor entrance, over a 72-hour window bracketing landfall.</p>
+  <div class="landfall-strip">
+    <div class="landfall-stat"><div class="label">Landfall</div><div class="value">08/26 03:00 UTC</div></div>
+    <div class="landfall-stat"><div class="label">Intensity at landfall</div><div class="value">115 kt / 937 mb</div></div>
+    <div class="landfall-stat"><div class="label">Saffir&ndash;Simpson</div><div class="value">Category 4</div></div>
+    <div class="landfall-stat"><div class="label">Location</div><div class="value">28.0&deg;N 96.9&deg;W</div></div>
+  </div>
+</header>
+
+<div class="summary-box">
+  <h2>Key finding</h2>
+  <p>After correcting a depth sign-convention bug in the unstructured WW3 grid setup
+  (<code>UNST%SF</code>), the structured and unstructured regional grids agree closely across the
+  full model chain for Harvey: within <strong>3.8%</strong> at the deep-water
+  reference point and <strong>2.5%</strong> at the Galveston harbor entrance, for peak
+  significant wave height. Harvey intensified rapidly just before landfall and came ashore well southwest of Galveston, so the city felt its wind field's northeast quadrant rather than a direct strike.</p>
+  <div class="chain">
+    <span class="node">WW3 &middot; Gulf of Mexico<br>structured 0.1&deg; grid</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">boundary spectra<br>149 nest points</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">SWAN &middot; Galveston<br>28,834-node mesh</span>
+  </div>
+  <div class="chain">
+    <span class="node">WW3 &middot; Gulf of Mexico<br>unstructured 55,691-node mesh</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">boundary spectra<br>149 nest points</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">SWAN &middot; Galveston<br>28,834-node mesh (same)</span>
+  </div>
+</div>
+
+<section>
+  <h2>Grids &amp; meshes</h2>
+  <p class="section-note">Both grid types, for both models. WW3's two regional Gulf of Mexico grids (top row)
+  are the actual grids used in this study's WW3 stage. SWAN's unstructured Galveston nest (bottom right) is
+  the actual mesh used in this study's SWAN stage &mdash; SWAN's structured Gulf grid (bottom left) is shown
+  for completeness (pywaves supports it) but was not part of the nested pipeline in this study, which always
+  feeds SWAN the unstructured Galveston mesh regardless of WW3's grid type. Markers show the reference points
+  sampled below.</p>
+  <div class="mesh-grid">
+    <div class="mesh-card"><img src="grid_ww3_structured.png" alt="WW3 structured Gulf of Mexico grid">
+      <div class="cap"><strong>WW3 &middot; structured</strong> &middot; 181&times;131 rectilinear, 0.1&deg; (~10 km)</div></div>
+    <div class="mesh-card"><img src="grid_ww3_unstructured.png" alt="WW3 unstructured Gulf of Mexico mesh">
+      <div class="cap"><strong>WW3 &middot; unstructured</strong> &middot; 55,691 nodes, 108,734 elements</div></div>
+    <div class="mesh-card"><img src="grid_swan_structured.png" alt="SWAN structured Gulf of Mexico grid">
+      <div class="cap"><strong>SWAN &middot; structured</strong> &middot; 181&times;131 rectilinear, 0.1&deg; (illustrative, not used in the nest)</div></div>
+    <div class="mesh-card"><img src="grid_swan_unstructured.png" alt="SWAN Galveston unstructured mesh">
+      <div class="cap"><strong>SWAN &middot; unstructured</strong> &middot; 28,834 nodes, 50,841 elements</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Wind forcing</h2>
+  <p class="section-note">Both grids share identical forcing: a GAHM-style asymmetric parametric vortex
+  fit to the HURDAT2 best track, blended with ERA5 ambient wind and pressure. Harvey made landfall near Rockport, TX, roughly 280 km southwest of Galveston.</p>
+  
+</section>
+
+<section>
+  <h2>Run design: cold start</h2>
+  <p class="section-note">Both WW3 and SWAN start from zero wave energy at 08/24 12:00 UTC, and every statistic
+  below covers the full 72-hour window, including the first hours.</p>
+  <div class="note-box"><strong>How much the cold start matters here.</strong> Harvey was still a developing storm
+  at the start (about 60 kt), but the buoys already read 0.6&ndash;1.4 m of ambient sea, against 0.0&ndash;0.3 m
+  modeled in the first hour. Averaged over the first 12 hours the buoys read 1.1 m (Mid Gulf), 1.4 m (Freeport)
+  and 0.7 m (Galveston), against 0.5, 0.6 and 0.01 m modeled, with a largest early deficit of 0.7&ndash;1.3 m.
+  After the first 24 hours the structured-grid H<sub>s</sub> bias is &minus;0.01, +0.21 and &minus;0.38 m (RMSE
+  0.22, 0.48 and 0.45 m) at the same three buoys.</div>
+</section>
+
+<section>
+  <h2>Wave parameters by location</h2>
+  <p class="section-note">H<sub>s</sub>, period, and mean wave direction (MWD, 0&ndash;360&deg; raw &mdash; a jump
+  across the wrap point is not a real direction change) at each of four locations, from deep Gulf water through
+  the SWAN nest boundary to the harbor entrance. Period uses Tp (peak period, from WW3's peak frequency output)
+  for the two Gulf points and T01 (mean period) for the two Galveston points, the field SWAN's own output
+  carried for this run. Hover any chart for hourly values.</p>
+  
+        <div class="loc-card">
+          <div class="loc-head"><h3>Deep water</h3><span class="loc-domain">WW3 &middot; Gulf of Mexico</span></div>
+          <p class="loc-sub">92.5&deg;W, 26.5&deg;N &middot; regional WW3 grid, open water (~2,900 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-harvey-gulf_deep-hs"></div>
+                <div class="peakline">peak 3.77 / 3.91 m</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gulf_deep-hs', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [0.0, 0.29600000381469727, 0.49800002574920654, 0.6600000262260437, 0.7720000147819519, 0.9160000681877136, 1.096000075340271, 1.2960000038146973, 1.4920001029968262, 1.7040001153945923, 2.065999984741211, 2.618000030517578, 3.0900001525878906, 3.32200026512146, 3.436000108718872, 3.506000280380249, 3.5400002002716064, 3.5440001487731934, 3.5500001907348633, 3.568000078201294, 3.6020002365112305, 3.620000123977661, 3.680000066757202, 3.752000093460083, 3.7720000743865967, 3.684000253677368, 3.57200026512146, 3.504000186920166, 3.444000244140625, 3.3620002269744873, 3.30400013923645, 3.2820000648498535, 3.25600004196167, 3.242000102996826, 3.2380001544952393, 3.2140002250671387, 3.1720001697540283, 3.138000249862671, 3.1060001850128174, 3.068000078201294, 3.0160000324249268, 2.938000202178955, 2.822000026702881, 2.696000099182129, 2.6020002365112305, 2.5280001163482666, 2.452000141143799, 2.374000072479248, 2.2960000038146973, 2.240000009536743, 2.1780002117156982, 2.1000001430511475, 2.002000093460083, 1.8980001211166382, 1.7940000295639038, 1.6940001249313354, 1.6060000658035278, 1.5320000648498535, 1.468000054359436, 1.412000060081482, 1.3640000820159912, 1.3200000524520874, 1.2820000648498535, 1.2540000677108765, 1.2380000352859497, 1.2440000772476196, 1.290000081062317, 1.3600000143051147, 1.4220000505447388, 1.4620000123977661, 1.4660000801086426, 1.4480000734329224, 1.446000099182129], [0.0, 0.3020000159740448, 0.5040000081062317, 0.6660000085830688, 0.796000063419342, 0.9620000720024109, 1.1660000085830688, 1.374000072479248, 1.5760000944137573, 1.814000129699707, 2.194000005722046, 2.558000087738037, 2.8440001010894775, 3.0880000591278076, 3.2900002002716064, 3.442000150680542, 3.5380001068115234, 3.6020002365112305, 3.6580002307891846, 3.7200002670288086, 3.7700002193450928, 3.7900002002716064, 3.8460001945495605, 3.9080002307891846, 3.9140002727508545, 3.830000162124634, 3.7280001640319824, 3.682000160217285, 3.638000249862671, 3.556000232696533, 3.4820001125335693, 3.436000108718872, 3.388000249862671, 3.3400001525878906, 3.2980000972747803, 3.26200008392334, 3.2320001125335693, 3.2080001831054688, 3.1760001182556152, 3.118000030517578, 3.0360002517700195, 2.942000150680542, 2.8340001106262207, 2.7260000705718994, 2.6440000534057617, 2.576000213623047, 2.508000135421753, 2.446000099182129, 2.388000011444092, 2.3380000591278076, 2.2720000743865967, 2.192000150680542, 2.0960001945495605, 1.998000144958496, 1.902000069618225, 1.808000087738037, 1.718000054359436, 1.6360000371932983, 1.562000036239624, 1.4920001029968262, 1.4300000667572021, 1.374000072479248, 1.3260000944137573, 1.290000081062317, 1.2680000066757202, 1.2720000743865967, 1.3140000104904175, 1.3720000982284546, 1.4220000505447388, 1.4520000219345093, 1.4500000476837158, 1.4320000410079956, 1.4320000410079956], {landfallIndex: 39, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>Tp &middot; wave period</h4>
+                <div id="c-harvey-gulf_deep-tp"></div>
+                <div class="peakline">peak 11.8 / 11.8 s</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gulf_deep-tp', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [NaN, 1.9607840776443481, 2.8328611850738525, 3.278688430786133, 3.649634838104248, 3.9215681552886963, 4.255319118499756, 4.651162624359131, 5.102040767669678, 5.55555534362793, 5.98802375793457, 6.410256385803223, 10.869564056396484, 10.638297080993652, 10.101009368896484, 9.80392074584961, 9.523809432983398, 9.009008407592773, 8.69565200805664, 8.403361320495605, 8.333333015441895, 8.403361320495605, 8.403361320495605, 8.403361320495605, 8.403361320495605, 8.403361320495605, 8.403361320495605, 8.2644624710083, 8.196721076965332, 8.130081176757812, 8.0, 7.692306995391846, 10.869564056396484, 11.235955238342285, 11.627906799316406, 11.764705657958984, 11.627906799316406, 11.627906799316406, 11.627906799316406, 11.49425220489502, 11.363635063171387, 11.11111068725586, 10.989009857177734, 10.869564056396484, 10.752687454223633, 10.638297080993652, 10.638297080993652, 10.638297080993652, 10.30927848815918, 10.101009368896484, 10.0, 9.900989532470703, 9.80392074584961, 9.70873737335205, 5.98802375793457, 9.09090805053711, 9.009008407592773, 5.74712610244751, 5.714285373687744, 5.714285373687744, 5.74712610244751, 5.780346393585205, 5.882352828979492, 6.0240960121154785, 6.097560882568359, 6.172839641571045, 6.172839641571045, 6.060606002807617, 5.882352828979492, 5.714285373687744, 5.714285373687744, 5.74712610244751, 5.714285373687744], [NaN, 2.0120723247528076, 2.8409087657928467, 3.322258710861206, 3.7037036418914795, 4.032258033752441, 4.366811752319336, 4.761904716491699, 5.15463924407959, 5.55555534362793, 5.8479533195495605, 6.289307594299316, 9.70873737335205, 9.70873737335205, 9.70873737335205, 9.615384101867676, 9.615384101867676, 9.523809432983398, 9.345793724060059, 9.174311637878418, 9.009008407592773, 9.09090805053711, 9.009008407592773, 8.849556922912598, 8.771928787231445, 8.771928787231445, 8.771928787231445, 8.547008514404297, 8.474575996398926, 8.403361320495605, 8.333333015441895, 8.2644624710083, 10.638297080993652, 11.11111068725586, 11.49425220489502, 11.627906799316406, 11.764705657958984, 11.764705657958984, 11.627906799316406, 11.627906799316406, 11.627906799316406, 11.363635063171387, 11.11111068725586, 10.989009857177734, 10.869564056396484, 10.752687454223633, 10.752687454223633, 10.638297080993652, 10.638297080993652, 10.638297080993652, 10.416666984558105, 10.204081535339355, 10.101009368896484, 9.900989532470703, 9.80392074584961, 9.615384101867676, 6.060606002807617, 6.0240960121154785, 5.98802375793457, 5.952380657196045, 5.917159080505371, 5.882352828979492, 5.882352828979492, 5.882352828979492, 5.917159080505371, 5.952380657196045, 5.952380657196045, 5.8479533195495605, 5.681817531585693, 5.586592197418213, 5.586592197418213, 5.617977619171143, 5.617977619171143], {landfallIndex: 39, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-harvey-gulf_deep-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gulf_deep-mwd', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [270.0, 84.5999984741211, 83.20000457763672, 80.70000457763672, 81.9000015258789, 85.5999984741211, 89.0999984741211, 94.20000457763672, 101.5999984741211, 110.4000015258789, 119.9000015258789, 140.0, 153.40000915527344, 156.60000610351562, 156.0, 155.0, 154.5, 154.0, 153.6999969482422, 153.8000030517578, 155.3000030517578, 157.90000915527344, 158.3000030517578, 157.5, 158.40000915527344, 161.3000030517578, 165.0, 168.60000610351562, 173.5, 179.6999969482422, 187.0, 195.3000030517578, 203.3000030517578, 211.3000030517578, 218.60000610351562, 224.5, 228.8000030517578, 231.3000030517578, 232.40000915527344, 233.10000610351562, 233.6999969482422, 233.40000915527344, 232.5, 230.1999969482422, 224.8000030517578, 218.40000915527344, 212.60000610351562, 207.1999969482422, 202.3000030517578, 197.90000915527344, 195.5, 194.5, 194.60000610351562, 194.8000030517578, 194.10000610351562, 193.1999969482422, 192.5, 191.8000030517578, 191.40000915527344, 191.40000915527344, 191.5, 191.3000030517578, 190.40000915527344, 188.3000030517578, 184.40000915527344, 177.3000030517578, 167.90000915527344, 160.5, 156.5, 154.5, 153.90000915527344, 153.40000915527344, 153.3000030517578], [270.0, 85.0, 82.80000305175781, 80.9000015258789, 83.70000457763672, 88.9000015258789, 93.4000015258789, 99.30000305175781, 107.4000015258789, 118.4000015258789, 128.3000030517578, 137.8000030517578, 145.1999969482422, 149.3000030517578, 151.10000610351562, 152.5, 154.0, 155.5, 156.5, 157.3000030517578, 159.0, 161.5, 161.8000030517578, 161.10000610351562, 162.1999969482422, 165.8000030517578, 169.60000610351562, 173.10000610351562, 177.5, 183.10000610351562, 189.3000030517578, 195.6999969482422, 202.1999969482422, 208.8000030517578, 214.8000030517578, 220.1999969482422, 224.6999969482422, 227.3000030517578, 228.8000030517578, 229.6999969482422, 230.1999969482422, 229.60000610351562, 228.6999969482422, 226.90000915527344, 222.6999969482422, 217.5, 212.6999969482422, 208.60000610351562, 205.40000915527344, 202.3000030517578, 200.6999969482422, 200.0, 200.3000030517578, 200.5, 200.10000610351562, 199.60000610351562, 198.6999969482422, 197.40000915527344, 196.0, 194.8000030517578, 193.40000915527344, 192.0, 190.0, 186.90000915527344, 182.1999969482422, 174.8000030517578, 165.6999969482422, 159.10000610351562, 155.8000030517578, 154.5, 154.3000030517578, 154.10000610351562, 154.0], {landfallIndex: 39, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="loc-card">
+          <div class="loc-head"><h3>Continental shelf</h3><span class="loc-domain">WW3 &middot; Gulf of Mexico</span></div>
+          <p class="loc-sub">94.5&deg;W, 28.5&deg;N &middot; regional WW3 grid, shelf water (~30-35 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-harvey-gulf_shelf-hs"></div>
+                <div class="peakline">peak 4.79 / 4.98 m</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gulf_shelf-hs', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [0.0, 0.00800000037997961, 0.02800000086426735, 0.18200001120567322, 0.27800002694129944, 0.3620000183582306, 0.48600003123283386, 0.6300000548362732, 0.7460000514984131, 0.8380000591278076, 0.8860000371932983, 0.9880000352859497, 1.158000111579895, 1.3140000104904175, 1.4320000410079956, 1.5800000429153442, 1.724000096321106, 1.9820001125335693, 2.320000171661377, 2.630000114440918, 2.9260001182556152, 3.180000066757202, 3.366000175476074, 3.5260002613067627, 3.684000253677368, 3.8600001335144043, 4.070000171661377, 4.37600040435791, 4.611999988555908, 4.708000183105469, 4.724000453948975, 4.720000267028809, 4.748000144958496, 4.7920002937316895, 4.702000141143799, 4.546000003814697, 4.5, 4.4720001220703125, 4.406000137329102, 4.310000419616699, 4.180000305175781, 4.088000297546387, 3.9860002994537354, 3.934000253677368, 3.8580002784729004, 3.746000289916992, 3.6540002822875977, 3.582000255584717, 3.4700002670288086, 3.384000062942505, 3.320000171661377, 3.2760002613067627, 3.246000051498413, 3.1620001792907715, 3.01200008392334, 2.8540000915527344, 2.7080001831054688, 2.56000018119812, 2.4280002117156982, 2.30400013923645, 2.196000099182129, 2.126000165939331, 2.1040000915527344, 2.1000001430511475, 2.1060001850128174, 2.1460001468658447, 2.200000047683716, 2.192000150680542, 2.2060000896453857, 2.244000196456909, 2.258000135421753, 2.322000026702881, 2.430000066757202], [0.0, 0.00800000037997961, 0.030000001192092896, 0.1900000125169754, 0.27800002694129944, 0.3620000183582306, 0.48600003123283386, 0.6300000548362732, 0.7440000176429749, 0.8340000510215759, 0.8840000629425049, 0.9820000529289246, 1.152000069618225, 1.312000036239624, 1.4420000314712524, 1.6220000982284546, 1.7940000295639038, 2.0400002002716064, 2.3519999980926514, 2.6440000534057617, 2.9020001888275146, 3.1460001468658447, 3.3560001850128174, 3.5400002002716064, 3.7200002670288086, 3.9200000762939453, 4.152000427246094, 4.4720001220703125, 4.7260003089904785, 4.860000133514404, 4.904000282287598, 4.9160003662109375, 4.930000305175781, 4.9760003089904785, 4.922000408172607, 4.798000335693359, 4.720000267028809, 4.660000324249268, 4.586000442504883, 4.484000205993652, 4.328000068664551, 4.208000183105469, 4.090000152587891, 4.022000312805176, 3.936000108718872, 3.818000078201294, 3.7200002670288086, 3.644000291824341, 3.5280001163482666, 3.440000057220459, 3.374000072479248, 3.32200026512146, 3.2840001583099365, 3.194000244140625, 3.0420000553131104, 2.882000207901001, 2.7340002059936523, 2.5900001525878906, 2.4620001316070557, 2.3380000591278076, 2.2320001125335693, 2.1579999923706055, 2.132000207901001, 2.130000114440918, 2.138000011444092, 2.182000160217285, 2.2360000610351562, 2.2320001125335693, 2.248000144958496, 2.2840001583099365, 2.2940001487731934, 2.3519999980926514, 2.450000047683716], {landfallIndex: 39, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>Tp &middot; wave period</h4>
+                <div id="c-harvey-gulf_shelf-tp"></div>
+                <div class="peakline">peak 13.5 / 12.8 s</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gulf_shelf-tp', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [NaN, 1.6420360803604126, 1.623376488685608, 1.6260162591934204, 2.3094687461853027, 2.6041667461395264, 2.898550510406494, 3.2679736614227295, 3.6764702796936035, 3.9215681552886963, 4.201680660247803, 4.34782600402832, 4.60829496383667, 4.901960372924805, 5.128204822540283, 5.434782028198242, 5.617977619171143, 13.513513565063477, 12.65822696685791, 12.195121765136719, 11.90476131439209, 11.764705657958984, 11.627906799316406, 11.627906799316406, 11.627906799316406, 11.627906799316406, 11.627906799316406, 11.49425220489502, 11.627906799316406, 11.764705657958984, 12.048192024230957, 12.195121765136719, 12.499999046325684, 12.65822696685791, 12.195121765136719, 11.90476131439209, 11.764705657958984, 11.764705657958984, 11.363635063171387, 8.69565200805664, 8.547008514404297, 8.403361320495605, 8.403361320495605, 8.403361320495605, 8.403361320495605, 8.333333015441895, 8.2644624710083, 8.196721076965332, 8.196721076965332, 8.130081176757812, 8.130081176757812, 8.064516067504883, 8.0, 7.936507701873779, 7.812499523162842, 7.692306995391846, 7.5757575035095215, 7.462686538696289, 7.407407283782959, 7.246376037597656, 7.042253494262695, 6.896551132202148, 6.80272102355957, 6.711409091949463, 6.578947067260742, 6.369426727294922, 6.289307594299316, 6.289307594299316, 6.329113483428955, 6.410256385803223, 6.535947322845459, 6.578947067260742, 6.666666507720947], [NaN, 1.6420360803604126, 1.623376488685608, 1.6339868307113647, 2.320185422897339, 2.6041667461395264, 2.898550510406494, 3.2679736614227295, 3.66300368309021, 3.906249761581421, 4.184100151062012, 4.329004287719727, 4.587155818939209, 4.878048419952393, 5.128204822540283, 5.405405521392822, 5.586592197418213, 5.780346393585205, 12.048192024230957, 12.048192024230957, 11.90476131439209, 11.90476131439209, 11.764705657958984, 11.764705657958984, 11.627906799316406, 11.627906799316406, 11.627906799316406, 11.764705657958984, 12.048192024230957, 12.34567928314209, 12.820512771606445, 12.820512771606445, 12.820512771606445, 12.820512771606445, 12.820512771606445, 12.65822696685791, 12.195121765136719, 11.90476131439209, 11.764705657958984, 11.627906799316406, 10.752687454223633, 8.620689392089844, 8.547008514404297, 8.547008514404297, 8.547008514404297, 8.474575996398926, 8.403361320495605, 8.333333015441895, 8.2644624710083, 8.196721076965332, 8.196721076965332, 8.130081176757812, 8.130081176757812, 8.064516067504883, 7.936507701873779, 7.812499523162842, 7.633586883544922, 7.518796920776367, 7.407407283782959, 7.352940559387207, 7.246376037597656, 7.042253494262695, 6.8493146896362305, 6.756756782531738, 6.666666507720947, 6.578947067260742, 6.451612949371338, 6.451612949371338, 6.451612949371338, 6.535947322845459, 6.578947067260742, 6.62251615524292, 6.666666507720947], {landfallIndex: 39, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-harvey-gulf_shelf-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gulf_shelf-mwd', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [270.0, 49.20000076293945, 46.29999923706055, 43.20000076293945, 42.5, 51.10000228881836, 62.60000228881836, 70.5, 74.0999984741211, 75.70000457763672, 77.0999984741211, 79.20000457763672, 81.70000457763672, 85.4000015258789, 88.9000015258789, 93.4000015258789, 99.70000457763672, 110.20000457763672, 120.70000457763672, 128.1999969482422, 134.3000030517578, 138.1999969482422, 141.10000610351562, 143.10000610351562, 144.8000030517578, 145.5, 146.0, 147.3000030517578, 150.3000030517578, 153.8000030517578, 156.6999969482422, 158.6999969482422, 160.90000915527344, 163.40000915527344, 165.5, 166.10000610351562, 165.0, 163.60000610351562, 162.10000610351562, 161.3000030517578, 160.90000915527344, 160.0, 160.3000030517578, 161.1999969482422, 162.0, 162.40000915527344, 162.6999969482422, 163.90000915527344, 166.10000610351562, 168.10000610351562, 170.8000030517578, 173.5, 175.5, 176.90000915527344, 178.40000915527344, 179.60000610351562, 180.5, 180.8000030517578, 180.5, 179.90000915527344, 178.10000610351562, 174.5, 168.8000030517578, 163.60000610351562, 159.10000610351562, 154.3000030517578, 150.90000915527344, 149.60000610351562, 149.3000030517578, 150.1999969482422, 152.10000610351562, 154.60000610351562, 158.3000030517578], [270.0, 49.10000228881836, 46.5, 43.400001525878906, 42.60000228881836, 51.20000076293945, 62.70000076293945, 70.5999984741211, 74.30000305175781, 75.9000015258789, 77.5, 79.5, 82.20000457763672, 86.30000305175781, 91.20000457763672, 98.30000305175781, 105.9000015258789, 114.4000015258789, 122.5, 128.90000915527344, 134.1999969482422, 138.1999969482422, 141.5, 144.0, 146.10000610351562, 147.10000610351562, 148.0, 149.60000610351562, 152.8000030517578, 156.5, 159.5, 161.5, 163.10000610351562, 165.40000915527344, 168.0, 169.3000030517578, 168.1999969482422, 166.6999969482422, 165.5, 164.60000610351562, 163.8000030517578, 162.3000030517578, 162.10000610351562, 162.60000610351562, 163.1999969482422, 163.6999969482422, 164.0, 164.90000915527344, 166.90000915527344, 168.8000030517578, 171.3000030517578, 173.8000030517578, 175.6999969482422, 177.10000610351562, 178.60000610351562, 179.6999969482422, 180.5, 180.8000030517578, 180.5, 179.6999969482422, 178.10000610351562, 174.6999969482422, 169.3000030517578, 164.3000030517578, 159.90000915527344, 155.3000030517578, 151.90000915527344, 150.5, 150.0, 150.8000030517578, 152.60000610351562, 154.90000915527344, 158.40000915527344], {landfallIndex: 39, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="loc-card">
+          <div class="loc-head"><h3>Open boundary</h3><span class="loc-domain">SWAN &middot; Galveston</span></div>
+          <p class="loc-sub">94.28&deg;W, 28.51&deg;N &middot; SWAN mesh, nest boundary node (~35 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-harvey-gal_boundary-hs"></div>
+                <div class="peakline">peak 3.04 / 3.23 m</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gal_boundary-hs', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [0.0, 0.004348, 0.009923, 0.03593, 0.1582, 0.2004, 0.2198, 0.2829, 0.381, 0.4663, 0.4694, 0.4669, 0.5054, 0.5715, 0.6497, 0.7307, 0.848, 0.9424, 1.033, 1.183, 1.365, 1.546, 1.707, 1.859, 1.987, 2.125, 2.295, 2.484, 2.757, 2.941, 2.979, 2.992, 3.008, 3.018, 3.038, 3.013, 3.008, 2.992, 2.996, 3.016, 2.992, 2.92, 2.93, 2.976, 2.962, 2.897, 2.726, 2.722, 2.742, 2.641, 2.472, 2.328, 2.238, 2.203, 2.2, 2.13, 2.029, 1.938, 1.854, 1.748, 1.687, 1.663, 1.656, 1.666, 1.68, 1.681, 1.684, 1.732, 1.806, 1.848, 1.86, 1.864, 1.823], [0.0, 0.003267, 0.00602, 0.01391, 0.07559, 0.1873, 0.1994, 0.2566, 0.358, 0.454, 0.467, 0.4691, 0.498, 0.5567, 0.6353, 0.7259, 0.8705, 1.021, 1.178, 1.362, 1.566, 1.778, 1.985, 2.197, 2.405, 2.622, 2.839, 3.007, 3.138, 3.206, 3.227, 3.234, 3.232, 3.229, 3.226, 3.205, 3.188, 3.168, 3.161, 3.168, 3.151, 3.105, 3.103, 3.12, 3.12, 3.085, 2.971, 2.964, 2.977, 2.901, 2.748, 2.588, 2.47, 2.415, 2.401, 2.318, 2.205, 2.103, 2.014, 1.901, 1.835, 1.799, 1.788, 1.787, 1.795, 1.791, 1.794, 1.84, 1.911, 1.961, 1.98, 1.979, 1.933], {landfallIndex: 39, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>T01 &middot; wave period</h4>
+                <div id="c-harvey-gal_boundary-tp"></div>
+                <div class="peakline">peak 8.4 / 9.9 s</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gal_boundary-tp', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [-9.0, 1.33, 1.25, 1.196, 1.444, 1.766, 1.925, 2.051, 2.238, 2.46, 2.644, 2.714, 2.729, 2.847, 3.052, 3.271, 3.461, 3.763, 4.152, 4.735, 5.426, 5.92, 6.507, 6.914, 7.112, 7.177, 7.2, 7.367, 7.669, 8.096, 8.313, 8.381, 8.411, 8.313, 8.137, 8.016, 7.921, 7.766, 7.618, 7.48, 7.33, 7.167, 7.074, 7.004, 6.969, 6.847, 6.675, 6.532, 6.492, 6.421, 6.251, 6.027, 5.838, 5.705, 5.62, 5.551, 5.453, 5.327, 5.209, 5.115, 4.96, 4.846, 4.787, 4.748, 4.764, 4.773, 4.784, 4.809, 4.884, 4.963, 4.996, 4.999, 4.995], [-9.0, 1.359, 1.278, 1.22, 1.174, 1.603, 1.879, 2.002, 2.202, 2.43, 2.657, 2.758, 2.779, 2.87, 3.08, 3.366, 3.687, 4.264, 4.929, 5.591, 6.262, 6.816, 7.469, 8.013, 8.425, 8.684, 8.859, 9.103, 9.32, 9.554, 9.8, 9.878, 9.882, 9.741, 9.462, 9.282, 9.085, 8.816, 8.444, 8.165, 7.956, 7.718, 7.535, 7.47, 7.427, 7.305, 7.164, 6.971, 6.93, 6.869, 6.696, 6.472, 6.244, 6.074, 5.96, 5.876, 5.776, 5.642, 5.516, 5.404, 5.223, 5.096, 5.003, 4.951, 4.949, 4.959, 4.973, 4.993, 5.073, 5.151, 5.205, 5.209, 5.207], {landfallIndex: 39, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-harvey-gal_boundary-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gal_boundary-mwd', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [-999.0, 274.6, 283.0, 282.0, 277.2, 274.7, 273.8, 273.3, 269.1, 264.8, 260.0, 258.3, 260.6, 261.3, 259.1, 255.6, 253.8, 250.1, 244.2, 237.6, 231.5, 227.9, 223.5, 220.4, 218.8, 218.2, 218.8, 219.1, 218.6, 215.8, 213.7, 212.5, 211.3, 211.0, 211.6, 211.5, 211.3, 211.5, 211.6, 211.2, 210.8, 210.6, 209.7, 208.0, 205.8, 204.6, 204.8, 204.5, 201.3, 196.8, 193.4, 192.1, 192.0, 191.8, 190.5, 189.1, 188.5, 188.2, 188.4, 190.7, 194.3, 197.3, 199.6, 202.5, 205.2, 206.5, 206.3, 204.5, 202.0, 199.3, 197.5, 196.1, 195.1], [-999.0, 271.4, 278.3, 286.6, 279.6, 269.4, 265.2, 266.2, 263.2, 259.4, 254.6, 253.0, 254.2, 254.6, 252.3, 247.8, 243.9, 237.4, 230.8, 226.1, 222.4, 219.7, 216.7, 214.3, 212.4, 211.0, 210.2, 209.6, 209.2, 208.4, 207.1, 206.1, 205.2, 204.8, 205.4, 205.2, 205.1, 205.8, 206.8, 207.5, 207.6, 207.8, 207.5, 206.4, 204.6, 203.6, 203.5, 203.4, 201.3, 198.0, 195.4, 194.4, 194.2, 194.0, 193.0, 192.0, 191.7, 191.5, 191.5, 193.2, 195.6, 197.9, 199.8, 202.1, 204.3, 205.5, 205.4, 204.1, 202.4, 200.4, 199.0, 197.8, 197.1], {landfallIndex: 39, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="loc-card">
+          <div class="loc-head"><h3>Harbor entrance</h3><span class="loc-domain">SWAN &middot; Galveston</span></div>
+          <p class="loc-sub">94.79&deg;W, 29.285&deg;N &middot; SWAN mesh, nearshore node (~1.8 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-harvey-gal_nearshore-hs"></div>
+                <div class="peakline">peak 0.95 / 0.97 m</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gal_nearshore-hs', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [0.0046, 0.004164, 0.004402, 0.004708, 0.004978, 0.005211, 0.005413, 0.005706, 0.007422, 0.02204, 0.04468, 0.07079, 0.1039, 0.141, 0.18, 0.2125, 0.248, 0.2793, 0.3282, 0.3827, 0.462, 0.5633, 0.6433, 0.6975, 0.7412, 0.7799, 0.8079, 0.8342, 0.8582, 0.8791, 0.8976, 0.9103, 0.9216, 0.931, 0.9383, 0.9436, 0.9466, 0.95, 0.9507, 0.9507, 0.951, 0.9495, 0.9483, 0.9483, 0.9477, 0.9466, 0.9453, 0.9461, 0.9456, 0.9451, 0.9451, 0.9452, 0.9451, 0.9451, 0.9438, 0.9406, 0.9351, 0.9277, 0.921, 0.9109, 0.8995, 0.8893, 0.8819, 0.877, 0.8739, 0.8703, 0.8679, 0.8681, 0.871, 0.8731, 0.8748, 0.8777, 0.882], [0.0046, 0.004164, 0.004402, 0.004708, 0.004978, 0.00521, 0.005407, 0.005678, 0.007349, 0.02198, 0.04464, 0.07081, 0.1041, 0.1415, 0.1812, 0.2152, 0.2553, 0.2969, 0.3623, 0.4379, 0.5364, 0.6391, 0.7022, 0.7509, 0.7961, 0.8382, 0.8716, 0.8981, 0.9192, 0.9351, 0.9471, 0.9541, 0.9603, 0.9658, 0.9698, 0.9723, 0.9732, 0.9746, 0.9735, 0.9718, 0.9703, 0.9672, 0.9643, 0.9626, 0.9604, 0.9578, 0.9551, 0.9549, 0.9534, 0.9523, 0.9519, 0.9518, 0.9516, 0.9516, 0.9504, 0.9473, 0.942, 0.9347, 0.9277, 0.9171, 0.9047, 0.8932, 0.8849, 0.879, 0.8751, 0.871, 0.8683, 0.8684, 0.871, 0.8729, 0.8749, 0.8783, 0.883], {landfallIndex: 39, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>T01 &middot; wave period</h4>
+                <div id="c-harvey-gal_nearshore-tp"></div>
+                <div class="peakline">peak 7.0 / 8.0 s</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gal_nearshore-tp', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [1.6, 1.563, 1.567, 1.574, 1.575, 1.574, 1.573, 1.561, 1.37, 1.092, 1.08, 1.109, 1.166, 1.238, 1.315, 1.434, 1.563, 1.731, 1.97, 2.418, 3.011, 3.64, 4.263, 4.682, 5.032, 5.29, 5.567, 5.804, 5.982, 6.149, 6.302, 6.48, 6.655, 6.812, 6.928, 6.998, 7.028, 7.005, 6.965, 6.917, 6.863, 6.823, 6.786, 6.739, 6.69, 6.649, 6.618, 6.582, 6.559, 6.55, 6.553, 6.562, 6.574, 6.581, 6.577, 6.56, 6.522, 6.454, 6.346, 6.214, 6.065, 5.891, 5.7, 5.516, 5.365, 5.258, 5.182, 5.13, 5.099, 5.096, 5.111, 5.139, 5.175], [1.6, 1.563, 1.567, 1.574, 1.575, 1.574, 1.572, 1.554, 1.356, 1.089, 1.079, 1.11, 1.169, 1.245, 1.327, 1.464, 1.641, 1.942, 2.376, 3.049, 3.73, 4.364, 4.968, 5.496, 5.985, 6.411, 6.818, 7.152, 7.397, 7.576, 7.691, 7.804, 7.899, 7.972, 8.005, 7.998, 7.957, 7.867, 7.763, 7.651, 7.533, 7.431, 7.333, 7.226, 7.12, 7.027, 6.95, 6.875, 6.82, 6.788, 6.774, 6.774, 6.781, 6.785, 6.781, 6.762, 6.722, 6.652, 6.537, 6.394, 6.227, 6.03, 5.813, 5.606, 5.433, 5.306, 5.216, 5.155, 5.117, 5.11, 5.126, 5.157, 5.198], {landfallIndex: 39, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-harvey-gal_nearshore-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-harvey-gal_nearshore-mwd', ["2017-08-24T12:00:00", "2017-08-24T13:00:00", "2017-08-24T14:00:00", "2017-08-24T15:00:00", "2017-08-24T16:00:00", "2017-08-24T17:00:00", "2017-08-24T18:00:00", "2017-08-24T19:00:00", "2017-08-24T20:00:00", "2017-08-24T21:00:00", "2017-08-24T22:00:00", "2017-08-24T23:00:00", "2017-08-25T00:00:00", "2017-08-25T01:00:00", "2017-08-25T02:00:00", "2017-08-25T03:00:00", "2017-08-25T04:00:00", "2017-08-25T05:00:00", "2017-08-25T06:00:00", "2017-08-25T07:00:00", "2017-08-25T08:00:00", "2017-08-25T09:00:00", "2017-08-25T10:00:00", "2017-08-25T11:00:00", "2017-08-25T12:00:00", "2017-08-25T13:00:00", "2017-08-25T14:00:00", "2017-08-25T15:00:00", "2017-08-25T16:00:00", "2017-08-25T17:00:00", "2017-08-25T18:00:00", "2017-08-25T19:00:00", "2017-08-25T20:00:00", "2017-08-25T21:00:00", "2017-08-25T22:00:00", "2017-08-25T23:00:00", "2017-08-26T00:00:00", "2017-08-26T01:00:00", "2017-08-26T02:00:00", "2017-08-26T03:00:00", "2017-08-26T04:00:00", "2017-08-26T05:00:00", "2017-08-26T06:00:00", "2017-08-26T07:00:00", "2017-08-26T08:00:00", "2017-08-26T09:00:00", "2017-08-26T10:00:00", "2017-08-26T11:00:00", "2017-08-26T12:00:00", "2017-08-26T13:00:00", "2017-08-26T14:00:00", "2017-08-26T15:00:00", "2017-08-26T16:00:00", "2017-08-26T17:00:00", "2017-08-26T18:00:00", "2017-08-26T19:00:00", "2017-08-26T20:00:00", "2017-08-26T21:00:00", "2017-08-26T22:00:00", "2017-08-26T23:00:00", "2017-08-27T00:00:00", "2017-08-27T01:00:00", "2017-08-27T02:00:00", "2017-08-27T03:00:00", "2017-08-27T04:00:00", "2017-08-27T05:00:00", "2017-08-27T06:00:00", "2017-08-27T07:00:00", "2017-08-27T08:00:00", "2017-08-27T09:00:00", "2017-08-27T10:00:00", "2017-08-27T11:00:00", "2017-08-27T12:00:00"], [198.3, 182.3, 181.5, 181.5, 182.2, 183.0, 184.0, 183.5, 162.8, 120.4, 118.0, 118.9, 120.2, 121.6, 123.0, 122.6, 123.2, 123.9, 126.0, 130.3, 135.9, 140.5, 144.1, 145.9, 147.0, 147.6, 148.1, 148.2, 147.8, 147.6, 147.4, 147.4, 147.3, 147.2, 146.9, 146.5, 145.9, 145.1, 144.3, 143.5, 142.9, 142.4, 142.1, 142.1, 142.4, 143.0, 143.7, 144.7, 145.8, 147.0, 148.3, 149.6, 150.9, 152.1, 153.1, 153.9, 154.4, 154.6, 154.7, 154.6, 154.2, 153.3, 152.0, 150.4, 148.9, 147.7, 146.7, 146.0, 145.7, 145.9, 146.6, 147.7, 149.0], [198.3, 182.3, 181.5, 181.5, 182.2, 183.0, 183.9, 183.4, 161.9, 120.1, 117.9, 119.0, 120.4, 121.9, 123.7, 123.9, 125.9, 129.5, 134.4, 140.2, 145.0, 147.8, 149.9, 151.3, 152.4, 153.2, 153.7, 153.8, 153.7, 153.5, 153.1, 152.7, 152.3, 151.9, 151.3, 150.7, 149.9, 148.9, 148.0, 147.1, 146.2, 145.5, 145.0, 144.7, 144.7, 144.9, 145.4, 146.2, 147.1, 148.2, 149.4, 150.6, 151.9, 153.0, 154.0, 154.7, 155.2, 155.5, 155.6, 155.5, 155.0, 154.2, 152.9, 151.4, 149.9, 148.6, 147.6, 146.9, 146.6, 146.8, 147.5, 148.7, 150.0], {landfallIndex: 39, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+</section>
+
+<section>
+  <h2>Peak value summary</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Location</th><th class="num">H<sub>s</sub> struct. (m)</th><th class="num">H<sub>s</sub> unstruct. (m)</th>
+      <th class="num">Difference</th><th class="num">Period struct. (s)</th><th class="num">Period unstruct. (s)</th></tr></thead>
+    <tbody><tr><td>Deep water</td><td class='num'>3.77</td><td class='num'>3.91</td><td class='num'>+3.8%</td><td class='num'>11.8</td><td class='num'>11.8</td></tr><tr><td>Continental shelf</td><td class='num'>4.79</td><td class='num'>4.98</td><td class='num'>+3.8%</td><td class='num'>13.5</td><td class='num'>12.8</td></tr><tr><td>Open boundary</td><td class='num'>3.04</td><td class='num'>3.23</td><td class='num'>+6.5%</td><td class='num'>8.4</td><td class='num'>9.9</td></tr><tr><td>Harbor entrance</td><td class='num'>0.95</td><td class='num'>0.97</td><td class='num'>+2.5%</td><td class='num'>7.0</td><td class='num'>8.0</td></tr></tbody>
+  </table>
+  </div>
+  <div class="note-box"><strong>Reading the difference column:</strong> a few percent is the expected,
+  physically reasonable sensitivity to regional grid resolution &mdash; the unstructured mesh resolves
+  shelf and nearshore bathymetry more finely than the 0.1&deg; (~10 km) structured grid. Before the
+  <code>UNST%SF</code> fix, the same comparison showed the unstructured grid underestimating the
+  structured grid by a factor of 5&ndash;6&times;, caused by ~98% of the unstructured mesh's nodes being
+  silently marked dry.</div>
+</section>
+
+<section>
+  <h2>Observed vs. modeled &mdash; NDBC buoys</h2>
+  <p class="section-note">Real wave-height observations from three NDBC buoys spanning the same range as the
+  synthetic reference points above, compared against both grid types at their nearest node. Bias, RMSE, and
+  correlation computed on hourly-matched H<sub>s</sub> over the run window; the lower-RMSE grid at each buoy
+  is marked.</p>
+  
+        <div class="buoy-card">
+          <div class="buoy-head"><h3>Mid Gulf</h3><span class="buoy-id">NDBC 42001 &middot; -89.64&deg;W 25.92&deg;N</span></div>
+          <p class="buoy-sub">Compared against the regional WW3 Gulf grid, hourly, nearest valid observation within 30 min.</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-obs)"></span>NDBC observed</span>
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="buoy-quad">
+              <div class="buoy-param">
+                <h4>H<sub>s</sub> &middot; wave height</h4>
+                
+                <div id="buoy-harvey-42001-hs"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.11m rmse 0.31m corr 0.81 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -0.08m rmse 0.32m corr 0.79 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42001-hs', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 0.77, 0.75, 0.79, 0.93, 1.04, 1.01, 1.21, 1.3, 1.31, 1.4, 1.35, 1.48, 1.52, 1.68, 1.65, 1.73, 1.61, 1.71, 1.66, 1.66, 1.59, 1.69, 1.71, 1.63, 1.66, 1.75, 1.68, 1.93, 1.77, 1.74, 1.49, 1.61, 1.52, 1.42, 1.38, 1.29, 1.33, 1.32, 1.4, 1.32, 1.45, 1.48, 1.45, 1.6, 1.59, 1.56, 1.89, 1.83, 1.76, 1.95, 1.94, 2.12, 1.85, 1.75, 1.78, 1.78, 1.64, 1.7, 1.52, 1.49, 1.43, 1.36, 1.35, 1.4, 1.38, 1.26, 1.27, 1.24, 1.2, 1.09, 1.04, 1.08], [0.0, 0.046000003814697266, 0.242000013589859, 0.2840000092983246, 0.3540000021457672, 0.4400000274181366, 0.527999997138977, 0.6000000238418579, 0.6760000586509705, 0.7540000081062317, 0.8520000576972961, 0.9480000734329224, 1.0360000133514404, 1.1220000982284546, 1.2020000219345093, 1.2920000553131104, 1.406000018119812, 1.5240000486373901, 1.6340000629425049, 1.724000096321106, 1.7740000486373901, 1.7920000553131104, 1.8040001392364502, 1.7920000553131104, 1.7660000324249268, 1.7440000772476196, 1.7220001220703125, 1.6920000314712524, 1.6540000438690186, 1.6160000562667847, 1.5860000848770142, 1.562000036239624, 1.5380001068115234, 1.50600004196167, 1.474000096321106, 1.4560000896453857, 1.4600000381469727, 1.4820001125335693, 1.5240000486373901, 1.5940001010894775, 1.6880000829696655, 1.7980000972747803, 1.9040000438690186, 1.9820001125335693, 2.01200008392334, 2.002000093460083, 1.970000147819519, 1.9480000734329224, 1.9180001020431519, 1.8700001239776611, 1.8200000524520874, 1.7680001258850098, 1.7120001316070557, 1.6540000438690186, 1.600000023841858, 1.5500000715255737, 1.50600004196167, 1.4660000801086426, 1.4320000410079956, 1.3980001211166382, 1.3640000820159912, 1.3280000686645508, 1.2880001068115234, 1.2480000257492065, 1.2000000476837158, 1.1460000276565552, 1.1019999980926514, 1.0660001039505005, 1.0360000133514404, 1.0099999904632568, 0.9920000433921814, 0.9780000448226929, 0.9720000624656677], [0.0, 0.04000000283122063, 0.20000000298023224, 0.27000001072883606, 0.34200000762939453, 0.4360000193119049, 0.534000039100647, 0.612000048160553, 0.6920000314712524, 0.7740000486373901, 0.8720000386238098, 0.9660000205039978, 1.0540000200271606, 1.1360000371932983, 1.218000054359436, 1.3100000619888306, 1.4100000858306885, 1.4860000610351562, 1.5460001230239868, 1.6040000915527344, 1.6540000438690186, 1.6920000314712524, 1.7360000610351562, 1.7640000581741333, 1.7720000743865967, 1.7780001163482666, 1.78000009059906, 1.7720000743865967, 1.7500001192092896, 1.7260000705718994, 1.7020000219345093, 1.6800000667572021, 1.6540000438690186, 1.6260000467300415, 1.6060000658035278, 1.6060000658035278, 1.6260000467300415, 1.6600000858306885, 1.7020000219345093, 1.75600004196167, 1.818000078201294, 1.8820000886917114, 1.942000150680542, 1.9900001287460327, 2.014000177383423, 2.01200008392334, 1.9940000772476196, 1.9820001125335693, 1.9600000381469727, 1.9140000343322754, 1.8600001335144043, 1.8040001392364502, 1.746000051498413, 1.686000108718872, 1.630000114440918, 1.5760000944137573, 1.5260000228881836, 1.4800000190734863, 1.436000108718872, 1.3940000534057617, 1.352000117301941, 1.3140000104904175, 1.2820000648498535, 1.246000051498413, 1.2040001153945923, 1.162000060081482, 1.124000072479248, 1.0940001010894775, 1.0640000104904175, 1.0360000133514404, 1.0140000581741333, 0.9960000514984131, 0.984000027179718], {unit: 'm', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Wind speed</h4>
+                
+                <div id="buoy-harvey-42001-wspd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +0.03m/s rmse 0.68m/s corr 0.92 (n=73)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -0.03m/s rmse 0.69m/s corr 0.91 (n=73)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42001-wspd', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [6.5, 6.4, 7.5, 7.6, 7.7, 7.8, 8.0, 8.5, 9.1, 9.8, 9.5, 9.5, 9.2, 9.7, 9.8, 9.7, 9.6, 9.3, 8.6, 8.8, 9.2, 9.3, 8.9, 7.8, 7.8, 8.1, 8.6, 8.2, 7.6, 7.1, 6.9, 6.1, 6.2, 5.3, 5.9, 5.9, 6.8, 7.2, 6.7, 6.4, 6.7, 6.9, 7.4, 7.4, 8.3, 7.2, 7.7, 7.7, 7.6, 7.9, 6.8, 7.1, 6.4, 5.6, 5.5, 5.6, 4.2, 3.5, 2.7, 3.2, 3.9, 4.4, 4.9, 5.2, 4.8, 6.4, 6.9, 4.8, 5.7, 6.7, 7.3, 7.2, 6.8], [6.378087997436523, 6.053924560546875, 6.324555397033691, 6.360031604766846, 6.640783309936523, 7.280109882354736, 7.669419765472412, 7.747257709503174, 8.13449478149414, 8.377350807189941, 8.988882064819336, 9.305912017822266, 9.415412902832031, 9.43027114868164, 9.360021591186523, 9.72008228302002, 9.986491203308105, 9.481034278869629, 9.417536735534668, 9.406912803649902, 9.269844055175781, 9.219544410705566, 9.542536735534668, 8.918519973754883, 8.67640495300293, 8.67640495300293, 8.67640495300293, 8.229216575622559, 7.7820305824279785, 7.653757572174072, 7.632168769836426, 7.433034420013428, 6.920260429382324, 6.3890533447265625, 6.1554856300354, 6.862215518951416, 7.144928455352783, 7.009280204772949, 6.720862865447998, 6.90289831161499, 7.242237567901611, 7.545197486877441, 7.940403461456299, 7.9397735595703125, 7.496665954589844, 7.283543109893799, 7.300684928894043, 8.36480712890625, 7.605918884277344, 7.2069411277771, 6.985699653625488, 7.057620048522949, 6.484597206115723, 6.113101005554199, 5.727128505706787, 4.850773334503174, 3.635931968688965, 2.6000001430511475, 2.505992889404297, 3.6235342025756836, 4.652956008911133, 5.021951675415039, 5.946427345275879, 5.728001117706299, 5.044799327850342, 4.967896938323975, 5.590169906616211, 5.946427345275879, 6.0876922607421875, 6.184658527374268, 6.3600311279296875, 6.4140472412109375, 6.484597206115723], [6.228964805603027, 5.730619430541992, 6.087692737579346, 6.413267612457275, 6.694027423858643, 7.337574481964111, 7.716217041015625, 7.725283622741699, 8.099382400512695, 8.338465690612793, 9.013877868652344, 9.178779602050781, 9.278470039367676, 9.291394233703613, 9.300538063049316, 9.580188751220703, 9.873702049255371, 9.360021591186523, 9.284934043884277, 9.333809852600098, 9.193475723266602, 9.06862735748291, 9.449338912963867, 8.935882568359375, 8.631338119506836, 8.631338119506836, 8.631338119506836, 8.184131622314453, 7.736924648284912, 7.702597141265869, 7.600657939910889, 7.488658428192139, 6.981403827667236, 6.378087997436523, 6.152235507965088, 6.79411506652832, 7.144928455352783, 7.076722621917725, 6.717886924743652, 6.90289831161499, 7.161005973815918, 7.381734371185303, 7.860025882720947, 7.9397735595703125, 7.496665954589844, 7.212489128112793, 7.080254554748535, 8.324061393737793, 7.647875785827637, 7.2069411277771, 6.985699653625488, 6.964194297790527, 6.296824932098389, 5.948109149932861, 5.651548385620117, 4.729693412780762, 3.5846898555755615, 2.640075922012329, 2.5495097637176514, 3.667424201965332, 4.51774263381958, 5.0803542137146, 5.946427345275879, 5.515432834625244, 4.891829967498779, 4.891829967498779, 5.597321033477783, 5.954830169677734, 5.954830169677734, 6.044005393981934, 6.220128536224365, 6.1057353019714355, 6.296824932098389], {unit: 'm/s', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Tp &middot; peak period</h4>
+                
+                <div id="buoy-harvey-42001-tp"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.22s rmse 2.10s corr 0.74 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -0.01s rmse 2.41s corr 0.63 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42001-tp', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 4.55, 4.76, 4.76, 5.26, 5.88, 6.67, 6.25, 6.67, 6.67, 6.67, 6.67, 5.88, 6.67, 8.33, 8.33, 8.33, 8.33, 8.33, 7.69, 7.69, 8.33, 7.69, 7.69, 7.14, 7.14, 7.14, 7.14, 7.14, 7.69, 6.67, 6.67, 6.67, 6.25, 6.67, 6.67, 6.25, 6.67, 7.14, 7.14, 6.67, 6.25, 9.09, 9.09, 9.09, 9.09, 9.09, 10.0, 9.09, 10.0, 10.0, 10.0, 10.0, 9.09, 9.09, 9.09, 9.09, 10.81, 9.09, 9.09, 7.69, 10.81, 10.0, 10.0, 10.0, 10.0, 10.0, 9.09, 9.09, 9.09, 9.09, 9.09, 9.09], [NaN, 1.636661171913147, 1.8450182676315308, 2.3529410362243652, 2.6041667461395264, 2.8490028381347656, 3.095975160598755, 3.278688430786133, 3.484320640563965, 3.7037036418914795, 3.861003875732422, 4.1152262687683105, 4.273504257202148, 4.504504203796387, 4.694835186004639, 4.878048419952393, 5.102040767669678, 5.405405521392822, 5.74712610244751, 6.0240960121154785, 6.211179733276367, 8.196721076965332, 7.936507701873779, 7.042253494262695, 6.993006706237793, 6.944444179534912, 6.8493146896362305, 6.80272102355957, 6.711409091949463, 6.62251615524292, 6.535947322845459, 6.410256385803223, 6.369426727294922, 6.329113483428955, 6.289307594299316, 6.289307594299316, 6.329113483428955, 6.369426727294922, 12.048192024230957, 11.764705657958984, 11.49425220489502, 11.627906799316406, 11.764705657958984, 11.764705657958984, 11.627906799316406, 11.49425220489502, 11.11111068725586, 10.989009857177734, 10.869564056396484, 10.752687454223633, 10.638297080993652, 10.416666984558105, 10.30927848815918, 10.30927848815918, 10.638297080993652, 10.869564056396484, 10.869564056396484, 10.752687454223633, 10.638297080993652, 10.416666984558105, 10.204081535339355, 10.0, 9.900989532470703, 9.80392074584961, 9.70873737335205, 9.433961868286133, 9.174311637878418, 9.09090805053711, 9.009008407592773, 8.928570747375488, 8.771928787231445, 8.403361320495605, 8.2644624710083], [NaN, 1.6393442153930664, 1.6949151754379272, 2.2935779094696045, 2.5706939697265625, 2.8328611850738525, 3.095975160598755, 3.322258710861206, 3.5087716579437256, 3.7453181743621826, 3.8910505771636963, 4.149377346038818, 4.291845321655273, 4.524886608123779, 4.672896862030029, 4.784688949584961, 4.975124359130859, 5.181346893310547, 5.319148540496826, 5.55555534362793, 5.952380657196045, 6.289307594299316, 6.62251615524292, 6.756756782531738, 6.8493146896362305, 6.944444179534912, 6.993006706237793, 6.993006706237793, 6.993006706237793, 6.993006706237793, 6.944444179534912, 6.896551132202148, 6.8493146896362305, 9.259259223937988, 9.523809432983398, 9.615384101867676, 9.80392074584961, 10.416666984558105, 11.627906799316406, 11.764705657958984, 11.90476131439209, 11.90476131439209, 11.90476131439209, 11.90476131439209, 11.764705657958984, 11.764705657958984, 11.627906799316406, 11.627906799316406, 11.363635063171387, 11.235955238342285, 10.989009857177734, 10.869564056396484, 10.869564056396484, 10.752687454223633, 10.638297080993652, 10.638297080993652, 10.526314735412598, 10.526314735412598, 10.526314735412598, 10.416666984558105, 10.204081535339355, 10.101009368896484, 10.0, 9.900989532470703, 9.80392074584961, 9.70873737335205, 9.615384101867676, 9.433961868286133, 9.259259223937988, 9.09090805053711, 9.009008407592773, 5.714285373687744, 5.681817531585693], {unit: 's', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>MWD &middot; direction</h4>
+                <p class="buoy-param-note">circular; bias/RMSE only</p>
+                <div id="buoy-harvey-42001-mwd"></div>
+                <div class="buoy-stat-line"><span>struct: bias -36.14deg rmse 52.93deg (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -35.90deg rmse 53.16deg (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42001-mwd', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 131.0, 136.0, 140.0, 144.0, 158.0, 156.0, 156.0, 163.0, 177.0, 166.0, 166.0, 157.0, 169.0, 188.0, 189.0, 191.0, 189.0, 188.0, 194.0, 190.0, 201.0, 195.0, 209.0, 186.0, 198.0, 199.0, 198.0, 195.0, 210.0, 189.0, 188.0, 195.0, 188.0, 178.0, 185.0, 183.0, 186.0, 212.0, 210.0, 174.0, 159.0, 282.0, 284.0, 279.0, 274.0, 279.0, 283.0, 280.0, 294.0, 293.0, 291.0, 293.0, 289.0, 297.0, 293.0, 292.0, 300.0, 310.0, 296.0, 281.0, 306.0, 299.0, 305.0, 297.0, 301.0, 302.0, 299.0, 295.0, 296.0, 301.0, 298.0, 307.0], [270.0, 125.9000015258789, 118.9000015258789, 113.5, 112.70000457763672, 114.30000305175781, 116.30000305175781, 117.80000305175781, 118.0999984741211, 119.20000457763672, 123.9000015258789, 127.70000457763672, 131.0, 135.1999969482422, 140.1999969482422, 145.3000030517578, 151.10000610351562, 159.90000915527344, 169.60000610351562, 176.3000030517578, 179.8000030517578, 181.40000915527344, 181.40000915527344, 181.90000915527344, 183.10000610351562, 183.8000030517578, 184.3000030517578, 185.3000030517578, 186.90000915527344, 188.5, 190.0, 192.0, 194.3000030517578, 196.90000915527344, 199.60000610351562, 201.8000030517578, 204.40000915527344, 209.0, 216.6999969482422, 226.0, 234.5, 241.1999969482422, 245.5, 247.8000030517578, 249.1999969482422, 249.90000915527344, 249.60000610351562, 247.10000610351562, 244.6999969482422, 243.60000610351562, 242.5, 241.10000610351562, 240.0, 239.0, 237.8000030517578, 236.6999969482422, 235.3000030517578, 232.90000915527344, 230.0, 227.60000610351562, 225.8000030517578, 224.3000030517578, 221.5, 218.3000030517578, 216.0, 213.1999969482422, 209.40000915527344, 204.6999969482422, 199.5, 193.90000915527344, 188.1999969482422, 183.6999969482422, 181.10000610351562], [270.0, 125.4000015258789, 117.0999984741211, 108.70000457763672, 107.0, 108.9000015258789, 111.30000305175781, 114.20000457763672, 116.20000457763672, 118.4000015258789, 123.80000305175781, 127.80000305175781, 131.0, 135.60000610351562, 141.10000610351562, 146.10000610351562, 150.0, 154.8000030517578, 160.3000030517578, 165.1999969482422, 169.5, 173.3000030517578, 175.8000030517578, 179.0, 182.5, 185.1999969482422, 187.3000030517578, 189.40000915527344, 191.60000610351562, 193.5, 195.10000610351562, 196.6999969482422, 198.6999969482422, 201.60000610351562, 205.40000915527344, 209.1999969482422, 213.40000915527344, 218.5, 224.90000915527344, 231.3000030517578, 236.6999969482422, 240.90000915527344, 243.60000610351562, 245.1999969482422, 246.5, 247.6999969482422, 248.1999969482422, 246.40000915527344, 244.3000030517578, 243.3000030517578, 242.10000610351562, 240.60000610351562, 239.1999969482422, 238.0, 236.6999969482422, 235.60000610351562, 234.60000610351562, 233.40000915527344, 232.10000610351562, 230.6999969482422, 228.90000915527344, 226.40000915527344, 222.6999969482422, 219.0, 216.5, 214.1999969482422, 210.60000610351562, 206.0, 201.1999969482422, 196.5, 191.8000030517578, 187.8000030517578, 184.90000915527344], {unit: ' deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="buoy-card">
+          <div class="buoy-head"><h3>Freeport, TX</h3><span class="buoy-id">NDBC 42019 &middot; -95.34&deg;W 27.91&deg;N</span></div>
+          <p class="buoy-sub">Compared against the regional WW3 Gulf grid, hourly, nearest valid observation within 30 min.</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-obs)"></span>NDBC observed</span>
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="buoy-quad">
+              <div class="buoy-param">
+                <h4>H<sub>s</sub> &middot; wave height</h4>
+                
+                <div id="buoy-harvey-42019-hs"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.01m rmse 0.52m corr 0.97 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.17m rmse 0.67m corr 0.98 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42019-hs', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 1.07, 1.01, 1.17, 1.18, 1.23, 1.4, 1.4, 1.46, 1.55, 1.79, 1.81, 1.79, 2.02, 2.16, 2.28, 2.65, 2.81, 3.46, 3.56, 4.03, 4.39, 4.28, 4.22, 5.22, 5.54, 5.77, 6.06, 6.54, 6.11, 6.49, 6.15, 6.41, 7.08, 6.11, 6.08, 5.6, 5.29, 4.78, 4.89, 4.65, 4.54, 4.34, 4.35, 4.5, 4.42, 3.98, 3.75, 3.76, 3.46, 4.21, 3.5, 3.73, 3.59, 3.98, 3.43, 3.28, 2.87, 2.72, 2.18, 2.07, 2.0, 1.84, 1.54, 1.7, 1.61, 1.63, 1.61, 1.76, 1.79, 1.96, 1.86, 2.28], [0.0, 0.030000001192092896, 0.22600001096725464, 0.3400000035762787, 0.49000000953674316, 0.6040000319480896, 0.690000057220459, 0.7640000581741333, 0.8260000348091125, 0.8920000195503235, 0.9460000395774841, 1.0420000553131104, 1.2160000801086426, 1.406000018119812, 1.596000075340271, 1.7700001001358032, 2.0940001010894775, 2.5900001525878906, 3.0920002460479736, 3.516000270843506, 3.878000259399414, 4.206000328063965, 4.458000183105469, 4.746000289916992, 5.118000030517578, 5.618000030517578, 6.2820000648498535, 6.676000118255615, 6.832000255584717, 6.928000450134277, 6.974000453948975, 6.812000274658203, 6.652000427246094, 6.678000450134277, 6.7220001220703125, 6.5420002937316895, 6.278000354766846, 5.974000453948975, 5.75600004196167, 5.576000213623047, 5.3520002365112305, 5.13200044631958, 4.970000267028809, 4.76200008392334, 4.568000316619873, 4.4160003662109375, 4.176000118255615, 4.076000213623047, 3.9760000705718994, 3.7900002002716064, 3.562000274658203, 3.3560001850128174, 3.2140002250671387, 3.1040000915527344, 2.9900002479553223, 2.8560001850128174, 2.7080001831054688, 2.556000232696533, 2.3980000019073486, 2.26200008392334, 2.1520001888275146, 2.064000129699707, 2.0160000324249268, 2.009999990463257, 2.0160000324249268, 2.0460000038146973, 2.1019999980926514, 2.142000198364258, 2.120000123977661, 2.114000082015991, 2.1520001888275146, 2.2660000324249268, 2.4000000953674316], [0.0, 0.030000001192092896, 0.2200000137090683, 0.33800002932548523, 0.4880000352859497, 0.6060000061988831, 0.6920000314712524, 0.7660000324249268, 0.8280000686645508, 0.8920000195503235, 0.9420000314712524, 1.03000009059906, 1.2060000896453857, 1.4160000085830688, 1.6800000667572021, 1.9880000352859497, 2.390000104904175, 2.8460001945495605, 3.266000270843506, 3.6640002727508545, 4.064000129699707, 4.432000160217285, 4.75, 5.124000072479248, 5.5960001945495605, 6.174000263214111, 6.824000358581543, 7.210000514984131, 7.380000114440918, 7.488000392913818, 7.506000518798828, 7.366000175476074, 7.196000576019287, 7.264000415802002, 7.308000564575195, 7.064000129699707, 6.720000267028809, 6.3560004234313965, 6.066000461578369, 5.810000419616699, 5.582000255584717, 5.37600040435791, 5.206000328063965, 4.984000205993652, 4.764000415802002, 4.62000036239624, 4.368000030517578, 4.246000289916992, 4.130000114440918, 3.9140002727508545, 3.6560001373291016, 3.4240002632141113, 3.264000177383423, 3.1460001468658447, 3.0360002517700195, 2.9060001373291016, 2.758000135421753, 2.6040000915527344, 2.448000192642212, 2.314000129699707, 2.200000047683716, 2.1040000915527344, 2.0500001907348633, 2.0420000553131104, 2.0480000972747803, 2.0840001106262207, 2.1500000953674316, 2.2080001831054688, 2.200000047683716, 2.192000150680542, 2.2200000286102295, 2.308000087738037, 2.4220001697540283], {unit: 'm', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Wind speed</h4>
+                
+                <div id="buoy-harvey-42019-wspd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +1.42m/s rmse 2.25m/s corr 0.89 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +1.50m/s rmse 2.31m/s corr 0.89 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42019-wspd', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 3.8, 7.3, 4.4, 5.9, 8.6, 5.8, 4.3, 6.7, 8.1, 8.1, 8.0, 9.2, 9.7, 10.5, 9.6, 9.4, 11.7, 11.3, 12.7, 11.9, 14.6, 13.1, 13.4, 14.1, 14.3, 13.8, 14.3, 14.3, 15.3, 15.4, 14.8, 17.8, 16.8, 16.8, 16.8, 17.0, 16.3, 17.2, 16.2, 16.3, 15.2, 15.5, 15.9, 17.1, 14.6, 14.3, 13.1, 13.2, 12.9, 16.4, 13.6, 14.3, 13.5, 13.7, 14.0, 11.2, 11.5, 10.7, 10.0, 10.1, 8.9, 8.1, 9.4, 10.1, 9.7, 8.9, 10.4, 12.8, 13.5, 9.8, 13.7, 13.6], [4.939635753631592, 6.140032768249512, 7.150524616241455, 7.77817440032959, 8.363014221191406, 8.405355453491211, 8.421995162963867, 8.631338119506836, 8.497057914733887, 8.645230293273926, 8.514693260192871, 9.347726821899414, 10.701869010925293, 11.308846473693848, 11.732434272766113, 11.624543190002441, 12.406450271606445, 12.218428611755371, 12.054044723510742, 12.781627655029297, 13.619471549987793, 13.623509407043457, 13.70328426361084, 15.838245391845703, 17.477128982543945, 18.73232650756836, 19.194271087646484, 17.20029067993164, 18.05796241760254, 18.63357162475586, 18.341211318969727, 17.167701721191406, 17.93014144897461, 20.05293083190918, 19.567319869995117, 19.870832443237305, 19.747404098510742, 18.707218170166016, 19.027610778808594, 18.927494049072266, 18.625253677368164, 18.129810333251953, 18.2584228515625, 17.528263092041016, 17.0836181640625, 17.181386947631836, 15.054567337036133, 17.069562911987305, 16.0, 14.681280136108398, 13.20189380645752, 12.998847007751465, 13.046455383300781, 13.011533737182617, 12.513193130493164, 11.649892807006836, 10.867382049560547, 10.131633758544922, 9.119759559631348, 9.464142799377441, 9.304837226867676, 9.600521087646484, 10.511898040771484, 11.067520141601562, 11.045361518859863, 11.76860237121582, 12.107848167419434, 12.404031753540039, 12.134248733520508, 12.50160026550293, 12.519584655761719, 13.500370025634766, 13.437262535095215], [4.904079914093018, 6.080296039581299, 7.083784580230713, 7.710382461547852, 8.37376880645752, 8.405355453491211, 8.421995162963867, 8.542247772216797, 8.497057914733887, 8.595929145812988, 8.459905624389648, 9.170605659484863, 10.610372543334961, 11.123398780822754, 11.670904159545898, 11.531695365905762, 12.349088668823242, 12.257650375366211, 11.981653213500977, 12.664912223815918, 13.579397201538086, 13.644412994384766, 13.68210506439209, 15.769591331481934, 17.39798927307129, 18.686893463134766, 19.243961334228516, 17.229045867919922, 18.14634895324707, 18.690372467041016, 18.501081466674805, 17.311845779418945, 18.069311141967773, 20.359027862548828, 20.012496948242188, 20.2237491607666, 19.969226837158203, 18.965232849121094, 19.13138771057129, 19.018413543701172, 18.84807777404785, 18.574443817138672, 18.703208923339844, 17.88435173034668, 17.336666107177734, 17.454513549804688, 15.276453018188477, 17.24094009399414, 16.102794647216797, 14.7312593460083, 13.238202095031738, 13.039172172546387, 13.064838409423828, 13.1240234375, 12.747549057006836, 11.910079956054688, 11.119802474975586, 10.381714820861816, 9.30215072631836, 9.534149169921875, 9.23471736907959, 9.518928527832031, 10.375452041625977, 10.890822410583496, 10.917875289916992, 11.810588836669922, 12.24295711517334, 12.638433456420898, 12.502799987792969, 12.719276428222656, 12.7098388671875, 13.403358459472656, 13.483694076538086], {unit: 'm/s', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Tp &middot; peak period</h4>
+                
+                <div id="buoy-harvey-42019-tp"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.16s rmse 2.06s corr 0.83 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.18s rmse 2.32s corr 0.82 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42019-tp', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 7.14, 6.25, 6.67, 6.67, 6.67, 6.25, 8.33, 6.67, 6.67, 5.88, 6.67, 5.88, 6.67, 6.67, 7.69, 7.69, 7.69, 7.14, 9.09, 10.81, 10.81, 10.0, 10.81, 11.43, 11.43, 11.43, 11.43, 11.43, 10.81, 10.81, 10.81, 10.0, 10.0, 9.09, 10.0, 9.09, 8.33, 9.09, 9.09, 10.81, 10.81, 8.33, 9.09, 9.09, 8.33, 9.09, 9.09, 8.33, 8.33, 8.33, 8.33, 8.33, 8.33, 7.69, 7.69, 6.67, 7.69, 6.67, 6.67, 8.33, 6.67, 8.33, 6.67, 6.67, 6.25, 7.69, 7.14, 6.67, 5.26, 6.67, 6.67, 6.25], [NaN, 1.6420360803604126, 1.7094016075134277, 2.421307325363159, 2.873563051223755, 3.2154338359832764, 3.4965033531188965, 3.7593984603881836, 3.906249761581421, 4.149377346038818, 4.273504257202148, 4.484304904937744, 4.672896862030029, 5.050504684448242, 5.405405521392822, 5.649717330932617, 6.0240960121154785, 12.820512771606445, 12.34567928314209, 12.195121765136719, 12.195121765136719, 12.34567928314209, 12.34567928314209, 12.34567928314209, 12.34567928314209, 12.499999046325684, 12.820512771606445, 12.987011909484863, 13.157894134521484, 12.987011909484863, 13.157894134521484, 12.987011909484863, 12.820512771606445, 12.195121765136719, 11.90476131439209, 11.627906799316406, 10.416666984558105, 10.204081535339355, 9.900989532470703, 9.615384101867676, 9.345793724060059, 9.174311637878418, 9.09090805053711, 9.009008407592773, 8.849556922912598, 8.547008514404297, 8.474575996398926, 8.333333015441895, 8.2644624710083, 8.196721076965332, 8.064516067504883, 7.936507701873779, 7.692306995391846, 7.5757575035095215, 7.462686538696289, 7.407407283782959, 7.352940559387207, 7.246376037597656, 7.042253494262695, 6.944444179534912, 6.80272102355957, 6.666666507720947, 6.493505954742432, 6.289307594299316, 6.134969234466553, 6.060606002807617, 6.097560882568359, 6.134969234466553, 6.134969234466553, 6.134969234466553, 6.134969234466553, 6.211179733276367, 6.369426727294922], [NaN, 1.6447367668151855, 1.6891891956329346, 2.421307325363159, 2.873563051223755, 3.2154338359832764, 3.5087716579437256, 3.7735846042633057, 3.906249761581421, 4.149377346038818, 4.255319118499756, 4.464285373687744, 4.651162624359131, 5.025125026702881, 5.347593307495117, 5.649717330932617, 12.34567928314209, 12.65822696685791, 12.820512771606445, 12.987011909484863, 12.987011909484863, 12.987011909484863, 13.157894134521484, 13.157894134521484, 13.157894134521484, 13.333333015441895, 13.513513565063477, 13.698629379272461, 13.698629379272461, 13.698629379272461, 13.698629379272461, 13.513513565063477, 13.157894134521484, 12.987011909484863, 12.820512771606445, 11.90476131439209, 11.627906799316406, 10.638297080993652, 10.204081535339355, 10.0, 9.70873737335205, 9.433961868286133, 9.259259223937988, 9.174311637878418, 9.009008407592773, 8.928570747375488, 8.771928787231445, 8.547008514404297, 8.333333015441895, 8.2644624710083, 8.196721076965332, 8.064516067504883, 7.812499523162842, 7.5757575035095215, 7.518796920776367, 7.462686538696289, 7.407407283782959, 7.299269676208496, 7.142857074737549, 6.993006706237793, 6.896551132202148, 6.756756782531738, 6.62251615524292, 6.410256385803223, 6.249999523162842, 6.172839641571045, 6.172839641571045, 6.211179733276367, 6.249999523162842, 6.211179733276367, 6.211179733276367, 6.249999523162842, 6.410256385803223], {unit: 's', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>MWD &middot; direction</h4>
+                <p class="buoy-param-note">circular; bias/RMSE only</p>
+                <div id="buoy-harvey-42019-mwd"></div>
+                <div class="buoy-stat-line"><span>struct: bias -1.06deg rmse 30.37deg (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.86deg rmse 30.43deg (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42019-mwd', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 141.0, 111.0, 109.0, 101.0, 118.0, 102.0, 130.0, 120.0, 111.0, 98.0, 110.0, 97.0, 86.0, 92.0, 102.0, 107.0, 101.0, 94.0, 139.0, 140.0, 129.0, 131.0, 150.0, 142.0, 145.0, 140.0, 144.0, 148.0, 135.0, 134.0, 140.0, 119.0, 126.0, 143.0, 159.0, 175.0, 166.0, 159.0, 189.0, 213.0, 225.0, 164.0, 158.0, 185.0, 158.0, 153.0, 159.0, 180.0, 152.0, 161.0, 175.0, 176.0, 165.0, 177.0, 156.0, 187.0, 176.0, 173.0, 173.0, 123.0, 180.0, 121.0, 163.0, 197.0, 146.0, 132.0, 141.0, 152.0, 151.0, 130.0, 140.0, 145.0], [270.0, 58.70000076293945, 53.20000076293945, 48.0, 48.10000228881836, 52.0, 56.5, 60.79999923706055, 64.0999984741211, 66.0999984741211, 66.5999984741211, 68.0999984741211, 71.0, 74.0, 77.0, 81.4000015258789, 92.70000457763672, 109.80000305175781, 121.5999984741211, 126.30000305175781, 128.3000030517578, 131.0, 133.1999969482422, 133.40000915527344, 132.90000915527344, 133.90000915527344, 137.5, 142.90000915527344, 146.6999969482422, 149.40000915527344, 153.40000915527344, 158.0, 162.5, 165.5, 168.6999969482422, 170.40000915527344, 171.90000915527344, 175.10000610351562, 177.6999969482422, 178.3000030517578, 179.10000610351562, 180.5, 181.3000030517578, 181.8000030517578, 182.60000610351562, 182.40000915527344, 181.10000610351562, 180.0, 181.90000915527344, 185.1999969482422, 187.6999969482422, 188.1999969482422, 187.1999969482422, 186.0, 185.6999969482422, 186.1999969482422, 187.0, 187.1999969482422, 186.8000030517578, 185.10000610351562, 181.90000915527344, 177.90000915527344, 172.40000915527344, 165.6999969482422, 160.1999969482422, 157.10000610351562, 155.8000030517578, 156.60000610351562, 159.6999969482422, 164.60000610351562, 168.10000610351562, 170.5, 173.10000610351562], [270.0, 59.900001525878906, 54.29999923706055, 49.10000228881836, 49.10000228881836, 52.5, 56.70000076293945, 60.60000228881836, 63.79999923706055, 65.5999984741211, 66.30000305175781, 68.0, 71.80000305175781, 77.5, 86.20000457763672, 97.5, 108.5999984741211, 117.9000015258789, 124.5999984741211, 128.10000610351562, 130.1999969482422, 132.60000610351562, 135.3000030517578, 136.8000030517578, 137.5, 138.90000915527344, 141.6999969482422, 146.0, 149.40000915527344, 151.90000915527344, 154.90000915527344, 159.0, 163.0, 166.6999969482422, 169.8000030517578, 171.1999969482422, 173.0, 175.90000915527344, 178.5, 179.60000610351562, 179.6999969482422, 180.40000915527344, 181.0, 181.90000915527344, 182.90000915527344, 183.10000610351562, 182.3000030517578, 181.6999969482422, 183.6999969482422, 186.8000030517578, 188.90000915527344, 189.40000915527344, 188.5, 187.5, 187.3000030517578, 187.90000915527344, 188.3000030517578, 188.3000030517578, 187.5, 185.6999969482422, 182.8000030517578, 179.0, 173.6999969482422, 167.10000610351562, 161.60000610351562, 158.60000610351562, 157.3000030517578, 157.90000915527344, 160.60000610351562, 165.60000610351562, 168.90000915527344, 171.40000915527344, 174.40000915527344], {unit: ' deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="buoy-card">
+          <div class="buoy-head"><h3>Galveston, TX</h3><span class="buoy-id">NDBC 42035 &middot; -94.41&deg;W 29.23&deg;N</span></div>
+          <p class="buoy-sub">Compared against the SWAN Galveston mesh, hourly, nearest valid observation within 30 min.</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-obs)"></span>NDBC observed</span>
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="buoy-quad">
+              <div class="buoy-param">
+                <h4>H<sub>s</sub> &middot; wave height</h4>
+                
+                <div id="buoy-harvey-42035-hs"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.54m rmse 0.63m corr 0.95 (n=71)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -0.48m rmse 0.59m corr 0.96 (n=71)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42035-hs', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 0.56, 0.69, 0.67, 0.64, 0.68, 0.65, 0.7, 0.72, 0.86, 0.87, 0.95, 1.04, 1.06, 1.32, 1.57, 1.43, 1.4, 1.54, 1.61, 1.69, 1.91, 2.04, 2.16, 2.2, 2.47, 2.19, 2.1, 2.29, 2.55, 2.91, 2.76, 2.89, 2.99, 2.87, 3.14, 3.14, 3.58, 3.32, 3.37, 3.13, 2.96, 3.04, 2.94, 3.28, 3.05, 3.27, 3.05, 3.05, 2.78, 3.01, 2.89, 2.96, 2.68, 2.61, null, 2.05, 2.19, 1.98, 1.88, 1.74, 1.68, 1.7, 1.75, 1.66, 1.92, 2.07, 2.36, 2.46, 2.22, 2.47, 2.5, 2.59], [0.005162, 0.005382, 0.005619, 0.005855, 0.006066, 0.006244, 0.006399, 0.006642, 0.00746, 0.01202, 0.03435, 0.06353, 0.106, 0.1578, 0.2168, 0.2816, 0.3514, 0.4247, 0.5127, 0.6148, 0.7355, 0.8774, 1.005, 1.142, 1.283, 1.425, 1.556, 1.707, 1.862, 2.017, 2.159, 2.268, 2.375, 2.451, 2.536, 2.61, 2.702, 2.781, 2.815, 2.813, 2.763, 2.706, 2.695, 2.686, 2.67, 2.656, 2.647, 2.727, 2.746, 2.706, 2.68, 2.634, 2.629, 2.591, 2.43, 2.241, 2.051, 1.888, 1.841, 1.736, 1.683, 1.68, 1.69, 1.696, 1.709, 1.728, 1.76, 1.794, 1.84, 1.869, 1.893, 1.985, 2.089], [0.005162, 0.005382, 0.005619, 0.005855, 0.006066, 0.006242, 0.006386, 0.006551, 0.00706, 0.01112, 0.03354, 0.06086, 0.1021, 0.1537, 0.2099, 0.2715, 0.3417, 0.422, 0.5223, 0.6405, 0.7778, 0.9332, 1.082, 1.234, 1.404, 1.576, 1.745, 1.926, 2.104, 2.261, 2.392, 2.483, 2.563, 2.632, 2.706, 2.772, 2.856, 2.926, 2.953, 2.939, 2.875, 2.798, 2.773, 2.756, 2.736, 2.719, 2.701, 2.785, 2.809, 2.772, 2.741, 2.703, 2.689, 2.655, 2.493, 2.3, 2.109, 1.944, 1.89, 1.79, 1.734, 1.723, 1.722, 1.726, 1.727, 1.743, 1.767, 1.804, 1.851, 1.884, 1.906, 1.998, 2.104], {unit: 'm', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Wind speed</h4>
+                <p class="buoy-param-note">read from the actual GAHM+ERA5 forcing field, not SWAN's own BLOCK wind output -- that diagnostic was found not to reflect the input forcing at all (verified by injecting an extreme value into the wind file and confirming it never appeared in the output)</p>
+                <div id="buoy-harvey-42035-wspd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +0.40m/s rmse 1.56m/s corr 0.90 (n=71)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.40m/s rmse 1.56m/s corr 0.90 (n=71)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42035-wspd', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 6.2, 3.5, 3.5, 6.2, 6.6, 6.6, 6.4, 5.9, 5.6, 6.1, 7.5, 7.4, 8.9, 10.6, 9.2, 9.5, 9.5, 10.7, 10.1, 9.7, 10.7, 10.5, 11.3, 9.5, 7.9, 9.6, 11.0, 11.6, 15.5, 14.5, 14.9, 14.5, 14.4, 13.5, 15.5, 16.4, 15.8, 16.1, 15.8, 15.8, 13.8, 14.6, 12.3, 14.1, 14.2, 14.6, 15.1, 13.8, 14.1, 14.8, 10.7, 12.4, 8.9, 13.2, null, 10.8, 8.8, 7.4, 8.9, 9.7, 9.9, 11.4, 11.3, 9.4, 12.5, 13.2, 13.3, 14.8, 13.3, 14.7, 13.2, 13.2], [2.63, 2.827, 3.442, 3.975, 4.112, 4.697, 6.448, 7.538, 7.273, 6.872, 6.553, 8.289, 8.941, 8.948, 9.505, 10.32, 10.375, 10.353, 10.675, 10.196, 10.186, 10.633, 9.326, 9.553, 10.741, 11.237, 11.589, 13.484, 14.003, 13.905, 13.481, 13.037, 13.551, 14.029, 15.008, 15.603, 16.421, 16.994, 16.637, 16.427, 15.493, 15.135, 15.462, 15.382, 14.967, 14.658, 14.393, 15.75, 14.868, 14.126, 13.905, 13.69, 13.877, 13.726, 12.401, 11.428, 10.802, 10.305, 11.551, 10.33, 10.779, 11.468, 11.603, 11.606, 11.601, 11.81, 12.076, 12.256, 12.628, 12.436, 12.385, 13.236, 13.653], [2.63, 2.827, 3.442, 3.975, 4.112, 4.697, 6.448, 7.538, 7.273, 6.872, 6.553, 8.289, 8.941, 8.948, 9.505, 10.32, 10.375, 10.353, 10.675, 10.196, 10.186, 10.633, 9.326, 9.553, 10.741, 11.237, 11.589, 13.484, 14.003, 13.905, 13.481, 13.037, 13.551, 14.029, 15.008, 15.603, 16.421, 16.994, 16.637, 16.427, 15.493, 15.135, 15.462, 15.382, 14.967, 14.658, 14.393, 15.75, 14.868, 14.126, 13.905, 13.69, 13.877, 13.726, 12.401, 11.428, 10.802, 10.305, 11.551, 10.33, 10.779, 11.468, 11.603, 11.606, 11.601, 11.81, 12.076, 12.256, 12.628, 12.436, 12.385, 13.236, 13.653], {unit: 'm/s', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>RTP &middot; peak period</h4>
+                
+                <div id="buoy-harvey-42035-tp"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.83s rmse 2.90s corr 0.68 (n=71)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.02s rmse 3.32s corr 0.63 (n=71)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42035-tp', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 6.67, 3.23, 3.33, 3.57, 3.7, 3.45, 6.25, 3.57, 3.85, 5.26, 5.26, 4.76, 4.76, 4.35, 4.76, 5.0, 5.0, 5.0, 4.76, 5.0, 5.56, 6.67, 10.0, 10.0, 9.09, 9.09, 9.09, 10.0, 10.0, 10.0, 9.09, 10.81, 10.81, 6.25, 10.81, 10.0, 10.0, 10.0, 6.25, 6.25, 10.0, 9.09, 9.09, 10.0, 9.09, 10.81, 7.14, 9.09, 8.33, 8.33, 8.33, 8.33, 8.33, 8.33, null, 8.33, 8.33, 7.69, 8.33, 7.69, 8.33, 7.69, 7.69, 7.14, 7.69, 7.69, 5.88, 6.67, 7.14, 6.67, 6.25, 6.67], [1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 3.116, 1.489, 1.489, 1.489, 1.964, 1.964, 2.154, 2.362, 2.59, 2.841, 3.116, 3.417, 13.65, 12.45, 12.45, 12.45, 12.45, 12.45, 12.45, 12.45, 13.65, 13.65, 13.65, 13.65, 13.65, 13.65, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 6.521, 6.521, 6.521, 6.521, 6.521, 7.152, 7.152, 7.152, 7.844, 7.844, 7.844, 7.844, 7.152, 7.152, 7.152, 7.152, 7.152, 7.152, 5.422, 5.422, 5.422, 5.422, 5.422, 5.422, 5.422, 5.946, 5.946, 5.946, 5.946, 5.946], [1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.964, 1.489, 1.489, 1.489, 1.79, 1.964, 2.154, 2.362, 2.59, 12.45, 12.45, 12.45, 12.45, 12.45, 12.45, 13.65, 13.65, 13.65, 13.65, 13.65, 13.65, 13.65, 13.65, 13.65, 14.97, 14.97, 13.65, 13.65, 5.946, 5.946, 6.521, 6.521, 6.521, 6.521, 6.521, 6.521, 6.521, 6.521, 6.521, 7.152, 7.152, 7.152, 8.603, 8.603, 8.603, 8.603, 7.844, 7.844, 7.844, 7.844, 7.844, 7.844, 7.844, 4.944, 5.422, 5.422, 5.422, 5.422, 5.422, 5.422, 5.946, 5.946, 5.946, 6.521], {unit: 's', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>MWD &middot; direction</h4>
+                <p class="buoy-param-note">circular; bias/RMSE only</p>
+                <div id="buoy-harvey-42035-mwd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +2.92deg rmse 51.97deg (n=71)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +9.35deg rmse 51.06deg (n=71)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-harvey-42035-mwd', ["2017-08-24 12:00:00", "2017-08-24 13:00:00", "2017-08-24 14:00:00", "2017-08-24 15:00:00", "2017-08-24 16:00:00", "2017-08-24 17:00:00", "2017-08-24 18:00:00", "2017-08-24 19:00:00", "2017-08-24 20:00:00", "2017-08-24 21:00:00", "2017-08-24 22:00:00", "2017-08-24 23:00:00", "2017-08-25 00:00:00", "2017-08-25 01:00:00", "2017-08-25 02:00:00", "2017-08-25 03:00:00", "2017-08-25 04:00:00", "2017-08-25 05:00:00", "2017-08-25 06:00:00", "2017-08-25 07:00:00", "2017-08-25 08:00:00", "2017-08-25 09:00:00", "2017-08-25 10:00:00", "2017-08-25 11:00:00", "2017-08-25 12:00:00", "2017-08-25 13:00:00", "2017-08-25 14:00:00", "2017-08-25 15:00:00", "2017-08-25 16:00:00", "2017-08-25 17:00:00", "2017-08-25 18:00:00", "2017-08-25 19:00:00", "2017-08-25 20:00:00", "2017-08-25 21:00:00", "2017-08-25 22:00:00", "2017-08-25 23:00:00", "2017-08-26 00:00:00", "2017-08-26 01:00:00", "2017-08-26 02:00:00", "2017-08-26 03:00:00", "2017-08-26 04:00:00", "2017-08-26 05:00:00", "2017-08-26 06:00:00", "2017-08-26 07:00:00", "2017-08-26 08:00:00", "2017-08-26 09:00:00", "2017-08-26 10:00:00", "2017-08-26 11:00:00", "2017-08-26 12:00:00", "2017-08-26 13:00:00", "2017-08-26 14:00:00", "2017-08-26 15:00:00", "2017-08-26 16:00:00", "2017-08-26 17:00:00", "2017-08-26 18:00:00", "2017-08-26 19:00:00", "2017-08-26 20:00:00", "2017-08-26 21:00:00", "2017-08-26 22:00:00", "2017-08-26 23:00:00", "2017-08-27 00:00:00", "2017-08-27 01:00:00", "2017-08-27 02:00:00", "2017-08-27 03:00:00", "2017-08-27 04:00:00", "2017-08-27 05:00:00", "2017-08-27 06:00:00", "2017-08-27 07:00:00", "2017-08-27 08:00:00", "2017-08-27 09:00:00", "2017-08-27 10:00:00", "2017-08-27 11:00:00", "2017-08-27 12:00:00"], [null, 129.0, 52.0, 47.0, 67.0, 63.0, 80.0, 140.0, 81.0, 88.0, 127.0, 131.0, 123.0, 102.0, 81.0, 92.0, 80.0, 85.0, 90.0, 82.0, 107.0, 115.0, 147.0, 172.0, 161.0, 159.0, 148.0, 139.0, 142.0, 152.0, 155.0, 152.0, 158.0, 189.0, 137.0, 179.0, 164.0, 173.0, 173.0, 107.0, 112.0, 174.0, 173.0, 168.0, 194.0, 187.0, 208.0, 154.0, 183.0, 169.0, 176.0, 176.0, 176.0, 176.0, 178.0, null, 196.0, 192.0, 186.0, 187.0, 177.0, 189.0, 185.0, 182.0, 191.0, 194.0, 175.0, 150.0, 171.0, 178.0, 170.0, 155.0, 161.0], [208.9, 208.5, 208.7, 209.1, 209.4, 209.6, 209.7, 210.3, 212.8, 192.2, 127.0, 117.5, 112.6, 111.5, 110.7, 108.4, 106.4, 106.0, 107.4, 110.3, 114.7, 120.1, 127.9, 135.1, 140.6, 143.4, 143.1, 139.4, 136.6, 136.4, 138.3, 140.2, 140.1, 140.2, 136.6, 132.6, 129.0, 127.8, 127.7, 128.7, 132.1, 135.1, 137.4, 141.0, 146.0, 150.0, 152.5, 157.0, 161.9, 165.0, 168.0, 170.0, 171.1, 171.7, 172.4, 172.4, 172.0, 170.8, 166.5, 164.7, 159.6, 153.3, 148.2, 145.5, 143.8, 142.5, 141.8, 142.8, 145.4, 149.4, 154.3, 158.3, 162.5], [208.9, 208.5, 208.7, 209.1, 209.4, 209.5, 209.6, 209.7, 210.6, 182.2, 123.4, 119.1, 116.0, 115.3, 114.9, 113.6, 112.9, 115.6, 121.7, 129.8, 138.0, 144.7, 152.5, 158.5, 161.2, 162.6, 162.7, 159.9, 156.9, 154.8, 153.7, 153.1, 151.4, 149.8, 145.6, 141.3, 136.9, 134.9, 133.9, 134.3, 136.9, 139.5, 141.1, 144.2, 148.8, 152.4, 154.8, 159.1, 163.9, 166.9, 170.3, 172.1, 173.3, 173.8, 174.4, 174.7, 174.4, 173.6, 169.8, 168.1, 163.6, 157.6, 152.7, 149.7, 147.9, 146.1, 145.4, 145.9, 148.2, 152.0, 157.0, 160.8, 165.1], {unit: ' deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+</section>
+
+<section>
+  <h2>Accuracy and runtime, summarized</h2>
+  <p class="section-note">Raw comparison stats, no verdict &mdash; structured and unstructured each win some
+  buoy/parameter comparisons and lose others; see the buoy cards above for the full breakdown per location
+  and parameter.</p>
+  <div class="verdict-grid">
+    <div class="verdict-tile"><div class="vk">Buoys where structured has lower RMSE</div><div class="vv">2 / 3</div>
+      <div class="vd">against NDBC H<sub>s</sub></div></div>
+    <div class="verdict-tile"><div class="vk">Buoys where unstructured has lower RMSE</div><div class="vv">1 / 3</div>
+      <div class="vd">against NDBC H<sub>s</sub></div></div>
+    <div class="verdict-tile"><div class="vk">Structured runtime</div><div class="vv">44 min</div>
+      <div class="vd">WW3 regional, 72h window</div></div>
+    <div class="verdict-tile"><div class="vk">Unstructured runtime</div><div class="vv">176 min</div>
+      <div class="vd">4.0&times; the structured runtime</div></div>
+  </div>
+  <div class="note-box"><strong>Why does peak-period correlation differ between the two grids, when H<sub>s</sub>
+  correlation barely does?</strong> For Harvey, correlation against NDBC's peak/dominant period is
+  consistently higher for the structured grid across the 3 buoys with enough valid pairs to compute it (mean gap
+  0.05), while H<sub>s</sub> correlation between the two grids differs by only
+  0.01 on average at the same buoys. That gap is consistent with what the two metrics
+  actually measure: H<sub>s</sub> is an integral over the full frequency spectrum, so small differences in
+  local spectral shape between the structured (uniform 0.1&deg;) and unstructured (55,691-node, spatially
+  varying resolution and triangle geometry) WW3 solutions mostly average out. Peak period instead picks a
+  single frequency bin &mdash; the one with the most energy &mdash; so the same small shape differences can
+  shift which bin wins, producing a larger, noisier swing in the period time series without any corresponding
+  change in wave energy. This is a property of peak-period as a diagnostic (sensitive to spectral discretization
+  noise), not a demonstrated general accuracy advantage of either grid type; a single storm cannot show one grid to
+  be generally more accurate at peak period.</div>
+</section>
+
+<footer>
+  pywaves &middot; WW3 7.14 (CMake/SHRD/ST4) + SWAN 41.51 &middot; GEBCO 2023 bathymetry &middot;
+  ERA5 ambient wind &middot; run window 08/24 12:00&ndash;08/27 12:00 UTC
+</footer>
+
+</div>
+</body>
+</html>
