@@ -14,6 +14,6 @@ I develop metocean tools based on Python to meet client needs. They can be pytho
 - Executable file or a series of Python scripts.
 
 ## Examples
-- [OCSmesh GUI](/products/software/ocsmesh-gui/)
+- [TRITON](/products/software/triton/)
 - [Ocean Model Viewer](/products/software/ocean-model-viewer/)
 - [MOSAIC](/products/software/mosaic/)
