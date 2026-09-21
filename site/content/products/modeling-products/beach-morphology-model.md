@@ -20,6 +20,6 @@ weight: 30
 <!-- [Add: grid resolution, typical domain size, runtime.] -->
 
 ## Example ##
-[Shoreline modeling for Hurricane Ike in Bolivar Peninsula](/portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/)
+[Shoreline modeling for Hurricane Ike in Bolivar Peninsula](/portfolio/independent-projects/hurricane-ike-beach-dune-erosion-xbeach/)
 
 *Thumbnail: Bolivar Peninsula, TX, before/after Hurricane Ike (2008) — public domain (USGS).*

@@ -1,5 +1,5 @@
 ---
-title: "Rebuilding Hurricane Ike at Rollover Pass"
+title: "Hurricane Ike Beach and Dune Erosion Modeling on Bolivar Peninsula (XBeach)"
 date: 2026-01-01
 description: "A physics-based storm-impact model of the Bolivar Peninsula barrier breach that Hurricane Ike reshaped in 2008, built from a real regional storm hindcast and checked against airborne pre- and post-storm lidar."
 challenge: "Rollover Pass, an artificial tidal inlet on Bolivar Peninsula, was reshaped by Hurricane Ike's 2008 landfall. Reconstructing that kind of storm-driven barrier response means simulating the actual physics -- waves, currents, and sediment transport together -- not just comparing before/after maps, and the result has to be checked against what actually happened, not just judged as \"reasonable-looking.\""
@@ -9,6 +9,8 @@ tags: ["XBeach", "SCHISM", "WWM", "storm-impact modeling", "coastal engineering"
 link: ""
 image: "/img/portfolio/rollover-pass/model_pre_post_diff.png"
 weight: 10
+aliases:
+  - /portfolio/independent-projects/rebuilding-hurricane-ike-at-rollover-pass/
 ---
 
 When Hurricane Ike made landfall near Galveston in September 2008, the surge and waves it drove across Bolivar Peninsula didn't just flood the coast — they moved the coast, cutting new channels and reshaping dunes in a matter of hours. Reconstructing that kind of change, or predicting it ahead of a future storm, means simulating the physics: how waves break, how currents move water and sand together, and how the seabed responds as both change.
