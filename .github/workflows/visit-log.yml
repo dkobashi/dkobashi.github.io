@@ -1,0 +1,53 @@
+name: Log site visit count
+
+# Once a day, read the running total from the footer visit badge and append
+# it to stats/visits.csv (outside site/, so it is never published). Daily
+# visits are the day-to-day differences. Note: reading the badge counts as
+# one hit itself, so expect about +1 per snapshot.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Append today's total
+        run: |
+          set -euo pipefail
+          today=$(date -u +%F)
+          mkdir -p stats
+          [ -f stats/visits.csv ] || echo "date_utc,total_visits" > stats/visits.csv
+          if grep -q "^${today}," stats/visits.csv; then
+            echo "Already logged for ${today}; skipping."
+            exit 0
+          fi
+          count=$(curl -fsS -m 30 -A "Mozilla/5.0" \
+            "https://visitor-badge.laobi.icu/badge?page_id=dkobashi.github.io&left_text=site%20visits" \
+            | grep -oE '>[0-9]+</text>' | tail -1 | grep -oE '[0-9]+')
+          if [ -z "$count" ]; then
+            echo "Could not read a count from the badge." >&2
+            exit 1
+          fi
+          echo "${today},${count}" >> stats/visits.csv
+          echo "Logged ${today},${count}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/visits.csv
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "Log site visit count"
+            git push
+          fi
