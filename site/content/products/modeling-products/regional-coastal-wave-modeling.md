@@ -5,7 +5,7 @@ description: "High-resolution wave models that predict wave transformation in of
 tags: []
 link: ""
 image: "/img/products/regional-coastal-wave-modeling.jpg"
-weight: 30
+weight: 15
 ---
 
 ## Description ##
@@ -16,5 +16,6 @@ Standalone wave runs like this are the right tool when a project needs wave fiel
 
 ## Examples ##
 - [Wave Model Grid Comparison: Hurricane Harvey (WW3 to SWAN, Structured vs. Unstructured)](/portfolio/independent-projects/harvey-ww3-swan-grid-intercomparison/)
+- [Wave Model Grid Comparison: Hurricane Ike (WW3 to SWAN, Structured vs. Unstructured)](/portfolio/independent-projects/ike-ww3-swan-grid-intercomparison/)
 
 *Thumbnail: Breaking ocean wave — public domain (NOAA), via Wikimedia Commons.*

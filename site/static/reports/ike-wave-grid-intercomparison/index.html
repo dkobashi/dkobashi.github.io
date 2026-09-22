@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hurricane Ike: WW3 to SWAN Grid Intercomparison | DJ Kobashi</title>
+<meta name="description" content="Structured vs. unstructured regional WAVEWATCH III grids nested into SWAN at Galveston for Hurricane Ike, checked against NDBC buoys, with a bottom-friction and nest time-step fix.">
+<link rel="icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --surface-0: #f6f5f1;
+  --surface-1: #ffffff;
+  --surface-2: #edece5;
+  --border: #dedcd2;
+  --text-primary: #16181a;
+  --text-secondary: #52534d;
+  --text-muted: #83837a;
+  --accent: #1e5a8f;
+  --series-structured: #2a78d6;
+  --series-unstructured: #eb6834;
+  --series-obs: #1baf7a;
+  --good: #1baf7a;
+  --serious: #e34948;
+  --chart-grid: #e4e2d8;
+}
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+    --surface-0: #131412; --surface-1: #1a1b18; --surface-2: #212220;
+    --border: #34362f; --text-primary: #f3f2ec; --text-secondary: #c3c2b7;
+    --text-muted: #8b8b80; --accent: #6fb0e8;
+    --series-structured: #3987e5; --series-unstructured: #d95926; --series-obs: #199e70;
+    --good: #199e70; --serious: #e66767; --chart-grid: #2b2d27;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #131412; --surface-1: #1a1b18; --surface-2: #212220;
+  --border: #34362f; --text-primary: #f3f2ec; --text-secondary: #c3c2b7;
+  --text-muted: #8b8b80; --accent: #6fb0e8;
+  --series-structured: #3987e5; --series-unstructured: #d95926; --series-obs: #199e70;
+  --good: #199e70; --serious: #e66767; --chart-grid: #2b2d27;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--surface-0); color: var(--text-primary);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0;
+  line-height: 1.55;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
+h1, h2, h3 { font-family: "Spectral", ui-serif, Georgia, serif; text-wrap: balance; font-weight: 600; color: var(--text-primary); }
+header.hero { padding: 56px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
+.eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 14px; }
+h1 { font-size: 42px; margin: 0 0 10px; line-height: 1.08; }
+.subtitle { font-size: 17px; color: var(--text-secondary); max-width: 680px; margin: 0 0 28px; }
+.landfall-strip { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface-1); }
+.landfall-stat { flex: 1 1 140px; padding: 16px 20px; border-right: 1px solid var(--border); }
+.landfall-stat:last-child { border-right: none; }
+.landfall-stat .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+.landfall-stat .value { font-family: "IBM Plex Mono", monospace; font-size: 19px; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+section { margin-bottom: 52px; }
+section > h2 { font-size: 25px; margin: 0 0 6px; }
+.section-note { color: var(--text-secondary); font-size: 15.5px; max-width: 720px; margin: 0 0 24px; }
+.summary-box { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 24px 26px; margin-bottom: 44px; }
+.summary-box h2 { margin-top: 0; font-size: 21px; }
+.summary-box p { color: var(--text-secondary); font-size: 15.5px; margin: 10px 0 0; max-width: 760px; }
+.chain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: "IBM Plex Mono", monospace; font-size: 13px; margin: 18px 0 0; }
+.chain .node { border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px; background: var(--surface-2); color: var(--text-primary); }
+.chain .arrow { color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 18px 0 8px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+td.num, th.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; }
+.table-wrap { overflow-x: auto; }
+.mesh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin: 18px 0; }
+.mesh-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.mesh-card img { width: 100%; display: block; }
+.mesh-card .cap { padding: 12px 16px; font-size: 13px; color: var(--text-secondary); }
+.mesh-card .cap strong { color: var(--text-primary); }
+.loc-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; margin: 0 0 26px; }
+.loc-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.loc-head h3 { font-size: 18px; margin: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+.loc-domain { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.loc-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
+.legend { display: flex; gap: 18px; font-size: 12.5px; color: var(--text-secondary); margin: 0 0 10px; flex-wrap: wrap; }
+.legend .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.chart-triplet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.chart-mini h4 { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.chart-mini .peakline { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.chart-mini .peakline b { color: var(--text-primary); font-weight: 500; }
+.chart-svg-wrap { position: relative; }
+.tooltip { position: absolute; pointer-events: none; background: var(--text-primary); color: var(--surface-1); font-family: "IBM Plex Mono", monospace; font-size: 11.5px; padding: 6px 9px; border-radius: 6px; transform: translate(-50%, -112%); white-space: nowrap; opacity: 0; transition: opacity 0.08s; z-index: 5; }
+.note-box { border-left: 3px solid var(--accent); background: var(--surface-1); border-radius: 0 8px 8px 0; padding: 16px 20px; font-size: 14.5px; color: var(--text-secondary); margin: 18px 0 0; }
+.note-box strong { color: var(--text-primary); }
+code { font-family: "IBM Plex Mono", monospace; font-size: 0.92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+footer { color: var(--text-muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 20px; }
+.buoy-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; margin: 0 0 26px; }
+.buoy-head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 2px; }
+.buoy-head h3 { font-size: 18px; margin: 0; font-family: "IBM Plex Sans", sans-serif; font-weight: 600; }
+.buoy-id { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); }
+.buoy-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
+.buoy-quad { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.buoy-param h4 { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.buoy-param-note { font-size: 11.5px; color: var(--text-muted); margin: 0 0 6px; font-style: italic; }
+.buoy-stat-line { display: flex; gap: 16px; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-muted); margin-top: 5px; flex-wrap: wrap; }
+.buoy-stat-line b { color: var(--text-primary); font-weight: 500; }
+.buoy-stat-line .win { color: var(--good); font-weight: 600; }
+.win { color: var(--good); font-weight: 600; }
+@media (max-width: 640px) { .buoy-quad { grid-template-columns: 1fr; } }
+.verdict-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 14px; margin: 18px 0; }
+.verdict-tile { background: var(--surface-2); border-radius: 10px; padding: 16px 18px; }
+.verdict-tile .vk { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+.verdict-tile .vv { font-family: "IBM Plex Mono", monospace; font-size: 22px; color: var(--text-primary); }
+.verdict-tile .vd { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; }
+.recommend-box { background: var(--surface-1); border: 1px solid var(--good); border-radius: 12px; padding: 22px 24px; margin-top: 8px; }
+.recommend-box h3 { margin: 0 0 8px; font-size: 17px; }
+.recommend-box p { color: var(--text-secondary); font-size: 15px; margin: 0; }
+@media (max-width: 760px) {
+  .chart-triplet { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  h1 { font-size: 32px; }
+  .landfall-stat { flex-basis: 45%; }
+}
+.site-back { padding: 18px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; color: var(--text-muted); }
+.site-back a { color: var(--accent); text-decoration: none; }
+.site-back a:hover { text-decoration: underline; }
+</style>
+<script>
+function fmtTime(iso, withDate) {
+  const d = new Date(iso + 'Z');
+  const hh = String(d.getUTCHours()).padStart(2,'0');
+  if (!withDate) return hh + ':00';
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  return `${mm}/${dd} ${hh}:00`;
+}
+
+function drawMiniChart(elId, times, seriesA, seriesB, opts) {
+  const root = document.getElementById(elId);
+  const W = root.clientWidth || 300, H = 150;
+  const padL = 34, padR = 8, padT = 8, padB = 22;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = times.length;
+  const allVals = seriesA.concat(seriesB).filter(v => v===v);
+  const minV = opts.zeroBased === false ? Math.min(...allVals) * 0.95 : 0;
+  const maxV = Math.max(...allVals) * 1.12;
+  const x = i => padL + (i/(n-1)) * plotW;
+  const y = v => padT + plotH - ((v-minV)/(maxV-minV)) * plotH;
+
+  const svgns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', H);
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+
+  const gridColor = getComputedStyle(document.body).getPropertyValue('--chart-grid').trim();
+  const mutedColor = getComputedStyle(document.body).getPropertyValue('--text-muted').trim();
+
+  const yTicks = 3;
+  for (let t = 0; t <= yTicks; t++) {
+    const v = minV + ((maxV-minV)/yTicks)*t;
+    const yy = y(v);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', W-padR);
+    line.setAttribute('y1', yy); line.setAttribute('y2', yy);
+    line.setAttribute('stroke', gridColor); line.setAttribute('stroke-width', 1);
+    svg.appendChild(line);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', padL - 6); label.setAttribute('y', yy + 3.5);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace');
+    label.setAttribute('fill', mutedColor);
+    label.textContent = v.toFixed(opts.decimals != null ? opts.decimals : 1);
+    svg.appendChild(label);
+  }
+
+  for (let i = 0; i < n; i += 24) {
+    const xx = x(i);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', xx); label.setAttribute('y', H - 6);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace');
+    label.setAttribute('fill', mutedColor);
+    label.textContent = fmtTime(times[i], true);
+    svg.appendChild(label);
+  }
+
+  if (opts.landfallIndex != null) {
+    const lx = x(opts.landfallIndex);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', lx); line.setAttribute('x2', lx);
+    line.setAttribute('y1', padT); line.setAttribute('y2', padT+plotH);
+    line.setAttribute('stroke', mutedColor); line.setAttribute('stroke-width', 1);
+    line.setAttribute('stroke-dasharray', '2,3');
+    svg.appendChild(line);
+  }
+
+  function drawSeries(series, color) {
+    if (opts.dots) {
+      for (let i = 0; i < n; i += 2) {
+        if (series[i] !== series[i]) continue;
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', x(i)); c.setAttribute('cy', y(series[i]));
+        c.setAttribute('r', 1.6); c.setAttribute('fill', color); c.setAttribute('opacity', 0.85);
+        svg.appendChild(c);
+      }
+      return;
+    }
+    let d = '', started = false;
+    for (let i = 0; i < n; i++) {
+      if (series[i] !== series[i]) { started = false; continue; }
+      d += (!started ? 'M' : 'L') + x(i).toFixed(2) + ',' + y(series[i]).toFixed(2) + ' ';
+      started = true;
+    }
+    const p = document.createElementNS(svgns, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', color); p.setAttribute('stroke-width', 1.8);
+    p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  }
+  const cStruct = getComputedStyle(document.body).getPropertyValue('--series-structured').trim();
+  const cUnstruct = getComputedStyle(document.body).getPropertyValue('--series-unstructured').trim();
+  drawSeries(seriesA, cStruct);
+  drawSeries(seriesB, cUnstruct);
+
+  const hoverLine = document.createElementNS(svgns, 'line');
+  hoverLine.setAttribute('y1', padT); hoverLine.setAttribute('y2', padT+plotH);
+  hoverLine.setAttribute('stroke', mutedColor); hoverLine.setAttribute('stroke-width', 1); hoverLine.setAttribute('opacity', 0);
+  svg.appendChild(hoverLine);
+  const dotA = document.createElementNS(svgns, 'circle');
+  dotA.setAttribute('r', 3); dotA.setAttribute('fill', cStruct); dotA.setAttribute('opacity', 0);
+  svg.appendChild(dotA);
+  const dotB = document.createElementNS(svgns, 'circle');
+  dotB.setAttribute('r', 3); dotB.setAttribute('fill', cUnstruct); dotB.setAttribute('opacity', 0);
+  svg.appendChild(dotB);
+
+  root.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-svg-wrap';
+  wrap.appendChild(svg);
+  const tip = document.createElement('div');
+  tip.className = 'tooltip';
+  wrap.appendChild(tip);
+  root.appendChild(wrap);
+
+  svg.addEventListener('mousemove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    let i = Math.round(((mx - padL) / plotW) * (n-1));
+    i = Math.max(0, Math.min(n-1, i));
+    const va = seriesA[i], vb = seriesB[i];
+    hoverLine.setAttribute('x1', x(i)); hoverLine.setAttribute('x2', x(i)); hoverLine.setAttribute('opacity', 1);
+    if (va===va) { dotA.setAttribute('cx', x(i)); dotA.setAttribute('cy', y(va)); dotA.setAttribute('opacity', 1); } else dotA.setAttribute('opacity',0);
+    if (vb===vb) { dotB.setAttribute('cx', x(i)); dotB.setAttribute('cy', y(vb)); dotB.setAttribute('opacity', 1); } else dotB.setAttribute('opacity',0);
+    tip.style.opacity = 1;
+    tip.style.left = ((x(i)/W)*rect.width) + 'px';
+    tip.style.top = ((y(Math.max(va||minV,vb||minV))/H)*rect.height) + 'px';
+    const unit = opts.unit || '';
+    tip.innerHTML = `${fmtTime(times[i], true)}<br>${va===va?va.toFixed(1):'-'}${unit} / ${vb===vb?vb.toFixed(1):'-'}${unit}`;
+  });
+  svg.addEventListener('mouseleave', () => {
+    hoverLine.setAttribute('opacity', 0); dotA.setAttribute('opacity', 0); dotB.setAttribute('opacity', 0);
+    tip.style.opacity = 0;
+  });
+}
+
+function drawBuoyChart(elId, times, obs, seriesA, seriesB, opts) {
+  opts = opts || {};
+  const root = document.getElementById(elId);
+  const W = root.clientWidth || 320, H = 150;
+  const padL = 36, padR = 8, padT = 8, padB = 20;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = times.length;
+  const allVals = obs.concat(seriesA, seriesB).filter(v => v === v && v !== null);
+  const minV = opts.zeroBased === false ? Math.min(...allVals) * (Math.min(...allVals) > 0 ? 0.95 : 1.05) : 0;
+  const maxV = Math.max(...allVals) * 1.12;
+  const x = i => padL + (i/(n-1)) * plotW;
+  const y = v => padT + plotH - ((v-minV)/(maxV-minV)) * plotH;
+  const dp = opts.decimals != null ? opts.decimals : 1;
+
+  const svgns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%'); svg.setAttribute('height', H);
+  svg.style.display = 'block'; svg.style.overflow = 'visible';
+
+  const gridColor = getComputedStyle(document.body).getPropertyValue('--chart-grid').trim();
+  const mutedColor = getComputedStyle(document.body).getPropertyValue('--text-muted').trim();
+
+  for (let t = 0; t <= 3; t++) {
+    const v = minV + ((maxV-minV)/3)*t, yy = y(v);
+    const line = document.createElementNS(svgns, 'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', W-padR);
+    line.setAttribute('y1', yy); line.setAttribute('y2', yy);
+    line.setAttribute('stroke', gridColor); line.setAttribute('stroke-width', 1);
+    svg.appendChild(line);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', padL - 6); label.setAttribute('y', yy + 3.5);
+    label.setAttribute('text-anchor', 'end'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace'); label.setAttribute('fill', mutedColor);
+    label.textContent = v.toFixed(dp);
+    svg.appendChild(label);
+  }
+  for (let i = 0; i < n; i += 24) {
+    const xx = x(i);
+    const label = document.createElementNS(svgns, 'text');
+    label.setAttribute('x', xx); label.setAttribute('y', H - 6);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('font-size', '9.5');
+    label.setAttribute('font-family', 'IBM Plex Mono, monospace'); label.setAttribute('fill', mutedColor);
+    label.textContent = fmtTime(times[i], true);
+    svg.appendChild(label);
+  }
+
+  function linePath(series, color) {
+    let d = '', started = false;
+    for (let i = 0; i < n; i++) {
+      const v = series[i];
+      if (v === null || v !== v) { started = false; continue; }
+      d += (!started ? 'M' : 'L') + x(i).toFixed(2) + ',' + y(v).toFixed(2) + ' ';
+      started = true;
+    }
+    const p = document.createElementNS(svgns, 'path');
+    p.setAttribute('d', d); p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', color); p.setAttribute('stroke-width', 1.8);
+    p.setAttribute('stroke-linejoin', 'round'); p.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(p);
+  }
+  const cStruct = getComputedStyle(document.body).getPropertyValue('--series-structured').trim();
+  const cUnstruct = getComputedStyle(document.body).getPropertyValue('--series-unstructured').trim();
+  const cObs = getComputedStyle(document.body).getPropertyValue('--series-obs').trim();
+  if (opts.dots) {
+    // circular (MWD): connecting lines across the 0/360 wrap would be misleading, so
+    // model series are also shown as discrete markers here, not connected lines.
+    for (let i = 0; i < n; i++) {
+      for (const [series, color] of [[seriesA, cStruct], [seriesB, cUnstruct]]) {
+        const v = series[i];
+        if (v === null || v !== v) continue;
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', x(i)); c.setAttribute('cy', y(v)); c.setAttribute('r', 1.8);
+        c.setAttribute('fill', color); c.setAttribute('opacity', 0.85);
+        svg.appendChild(c);
+      }
+    }
+  } else {
+    linePath(seriesA, cStruct);
+    linePath(seriesB, cUnstruct);
+  }
+  // observations as discrete markers throughout -- measured, not modeled continuously
+  for (let i = 0; i < n; i++) {
+    const v = obs[i];
+    if (v === null || v !== v) continue;
+    const c = document.createElementNS(svgns, 'circle');
+    c.setAttribute('cx', x(i)); c.setAttribute('cy', y(v)); c.setAttribute('r', 2.4);
+    c.setAttribute('fill', cObs); c.setAttribute('opacity', 0.9);
+    svg.appendChild(c);
+  }
+
+  root.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'chart-svg-wrap';
+  wrap.appendChild(svg);
+  const tip = document.createElement('div');
+  tip.className = 'tooltip';
+  wrap.appendChild(tip);
+  root.appendChild(wrap);
+
+  const hoverLine = document.createElementNS(svgns, 'line');
+  hoverLine.setAttribute('y1', padT); hoverLine.setAttribute('y2', padT+plotH);
+  hoverLine.setAttribute('stroke', mutedColor); hoverLine.setAttribute('stroke-width', 1); hoverLine.setAttribute('opacity', 0);
+  svg.appendChild(hoverLine);
+
+  svg.addEventListener('mousemove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    let i = Math.round(((mx - padL) / plotW) * (n-1));
+    i = Math.max(0, Math.min(n-1, i));
+    hoverLine.setAttribute('x1', x(i)); hoverLine.setAttribute('x2', x(i)); hoverLine.setAttribute('opacity', 1);
+    tip.style.opacity = 1;
+    tip.style.left = ((x(i)/W)*rect.width) + 'px';
+    tip.style.top = '4px';
+    const unit = opts.unit || '';
+    const fv = v => (v===null||v!==v) ? '&ndash;' : v.toFixed(dp);
+    tip.innerHTML = `${fmtTime(times[i], true)}<br>obs ${fv(obs[i])}${unit} &middot; struct ${fv(seriesA[i])}${unit} &middot; unstruct ${fv(seriesB[i])}${unit}`;
+  });
+  svg.addEventListener('mouseleave', () => { hoverLine.setAttribute('opacity', 0); tip.style.opacity = 0; });
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+<nav class="site-back"><a href="/portfolio/independent-projects/ike-ww3-swan-grid-intercomparison/">&larr; Back to the portfolio item</a> &middot; <a href="/">DJ Kobashi</a></nav>
+
+<header class="hero">
+  <p class="eyebrow">WW3 &rarr; SWAN nested wave model &middot; grid intercomparison</p>
+  <h1>Hurricane Ike (2008)</h1>
+  <p class="subtitle">Structured vs. unstructured regional grid sensitivity for a Gulf-of-Mexico&ndash;to&ndash;Galveston
+  nested wave forecast &mdash; H<sub>s</sub>, wave period, and mean direction at four locations spanning deep water
+  to the harbor entrance, scored over a 72-hour window bracketing landfall after a 48-hour model spin-up.</p>
+  <div class="landfall-strip">
+    <div class="landfall-stat"><div class="label">Landfall</div><div class="value">09/13 07:00 UTC</div></div>
+    <div class="landfall-stat"><div class="label">Intensity at landfall</div><div class="value">95 kt / 950 mb</div></div>
+    <div class="landfall-stat"><div class="label">Saffir&ndash;Simpson</div><div class="value">Category 2</div></div>
+    <div class="landfall-stat"><div class="label">Location</div><div class="value">29.3&deg;N 94.7&deg;W</div></div>
+  </div>
+</header>
+
+<div class="summary-box">
+  <h2>Key finding</h2>
+  <p>After correcting a depth sign-convention bug in the unstructured WW3 grid setup (<code>UNST%SF</code>), the structured and unstructured regional grids agree closely at the reference points for Ike: within <strong>2.9%</strong> at the deep-water reference point and <strong>2.3%</strong> at the Galveston harbor entrance, for peak significant wave height. Nearer the storm core they diverge more: at Mid Gulf buoy 42001 the unstructured mesh peaks 10% higher (13.2 vs 12.0 m, against 9.25 m observed). Ike crossed the open Gulf on a broadly northwest track, sweeping hurricane-force winds across a wide swath of deep water before striking Galveston nearly head-on.</p>
+  <div class="chain">
+    <span class="node">WW3 &middot; Gulf of Mexico<br>structured 0.1&deg; grid</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">boundary spectra<br>149 nest points</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">SWAN &middot; Galveston<br>28,834-node mesh</span>
+  </div>
+  <div class="chain">
+    <span class="node">WW3 &middot; Gulf of Mexico<br>unstructured 55,691-node mesh</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">boundary spectra<br>149 nest points</span>
+    <span class="arrow">&rarr;</span>
+    <span class="node">SWAN &middot; Galveston<br>28,834-node mesh (same)</span>
+  </div>
+</div>
+
+<section>
+  <h2>Grids &amp; meshes</h2>
+  <p class="section-note">Both grid types, for both models. WW3's two regional Gulf of Mexico grids (top row)
+  are the actual grids used in this study's WW3 stage. SWAN's unstructured Galveston nest (bottom right) is
+  the actual mesh used in this study's SWAN stage &mdash; SWAN's structured Gulf grid (bottom left) is shown
+  for completeness (pywaves supports it) but was not part of the nested pipeline in this study, which always
+  feeds SWAN the unstructured Galveston mesh regardless of WW3's grid type. Markers show the reference points
+  sampled below.</p>
+  <div class="mesh-grid">
+    <div class="mesh-card"><img src="grid_ww3_structured.png" alt="WW3 structured Gulf of Mexico grid">
+      <div class="cap"><strong>WW3 &middot; structured</strong> &middot; 181&times;131 rectilinear, 0.1&deg; (~10 km)</div></div>
+    <div class="mesh-card"><img src="grid_ww3_unstructured.png" alt="WW3 unstructured Gulf of Mexico mesh">
+      <div class="cap"><strong>WW3 &middot; unstructured</strong> &middot; 55,691 nodes, 108,734 elements</div></div>
+    <div class="mesh-card"><img src="grid_swan_structured.png" alt="SWAN structured Gulf of Mexico grid">
+      <div class="cap"><strong>SWAN &middot; structured</strong> &middot; 181&times;131 rectilinear, 0.1&deg; (illustrative, not used in the nest)</div></div>
+    <div class="mesh-card"><img src="grid_swan_unstructured.png" alt="SWAN Galveston unstructured mesh">
+      <div class="cap"><strong>SWAN &middot; unstructured</strong> &middot; 28,834 nodes, 50,841 elements</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Wind forcing</h2>
+  <p class="section-note">Both grids share identical forcing: a GAHM-style asymmetric parametric vortex
+  fit to the HURDAT2 best track, blended with ERA5 ambient wind and pressure. Ike made landfall directly at Galveston, TX.</p>
+  <div class="note-box"><strong>Wind fix applied for this storm.</strong> Buoy comparisons (below) showed GAHM overestimating peak wind by up to ~20-25% against Ike's own reported max sustained wind. Root cause: a Holland-B safety cap (<code>ALLOWANCE</code>) tuned against a weak, decaying storm (Harvey's stalled Aug-29 phase) permitted the profile to peak 25% above the storm's own reported vmax when it bound -- which it rarely did for Harvey, but did routinely for Ike's deeper, more intense pressure profile. Reduced from 1.25 to 1.05 (verified: peak/vmax ratio now 0.95-1.04 for both storms, vs. up to 1.24 for Ike previously) and both grids fully re-run. Bias improved most where the vortex core dominates (e.g. buoy 42001, bias 3.3&rarr;2.9 m/s); a residual positive bias remains at all three buoys, consistent with HURDAT2's 1-minute-sustained wind convention running higher than NDBC's 8-minute-average measurement -- a separate, unaddressed effect.</div>
+</section>
+
+<section>
+  <h2>Physics fixes: bottom friction and nest time step</h2>
+  <p class="section-note">Found while investigating why this WW3&rarr;SWAN chain under-predicted Galveston relative
+  to a coupled SCHISM-WWM hindcast of the same storm, even though WW3 alone matches or beats SCHISM-WWM at every
+  other Gulf buoy. Both fixes are now the pipeline default for Ike; neither has been validated for Harvey.</p>
+  <div class="note-box"><strong>Bottom friction.</strong> WW3's coded JONSWAP friction default (<code>GAMMA
+  = -0.067</code>, also what the SCHISM-WWM hindcast uses) damps shelf-transiting swell more than SWAN's own
+  default (<code>-0.038</code>). Switching WW3 to SWAN's value improved Galveston (structured-grid RMSE
+  1.33&rarr;0.97 m, bias -0.92&rarr;-0.54 m, measured directly on WW3's own grid) and was neutral-to-better at
+  every one of the other 8 Gulf NDBC stations checked (pooled RMSE 0.98&rarr;0.93 m) &mdash; not a Galveston-only
+  trade-off.</div>
+  <div class="note-box"><strong>SWAN nest time step.</strong> The nest's BSBT propagation scheme is unconditionally
+  stable but diffusive at high Courant numbers; running it at a 20-minute compute step instead of the 60-minute
+  output stride recovered part of the under-predicted landfall peak (structured-grid Galveston peak 4.50&rarr;5.62 m,
+  obs 6.03 m) without moving the pre-landfall bias much.</div>
+  <div class="note-box"><strong>Combined result, still short of a full fix.</strong> With both fixes together in
+  the full nested chain, Galveston bias is -0.88 m (structured) /
+  -0.76 m (unstructured), RMSE 1.33 /
+  1.21 m, peak 5.26 / 5.30 m against
+  6.03 m observed &mdash; better than before either fix (RMSE was 1.64 m), but each individual fix's
+  gain, measured in isolation, was larger than what survives once both run through the full WW3&rarr;SWAN nest
+  together: a standalone SWAN run covering the whole Gulf on the same mesh and wind, with no WW3 stage or nest
+  boundary at all, gets Galveston to RMSE 0.70 m under the same conditions. That gap between the nested chain and
+  a single-domain SWAN run is a real, unexplained difference between WW3's and SWAN's wave physics at this
+  location, and was not pursued further here.</div>
+</section>
+
+<section>
+  <h2>Run design: 48-hour spin-up</h2>
+  <p class="section-note">Both WW3 and SWAN start from zero wave energy at 09/09 12:00 UTC, 48 hours before the
+  72-hour scoring window (09/11 12:00&ndash;09/14 12:00), and every statistic and chart below is scored on that
+  window only.</p>
+  <div class="note-box"><strong>Why the spin-up matters.</strong> The first version of this comparison started the
+  models cold at 09/11 12:00, but Ike was already a mature Gulf storm: buoys read 7.7 m (42001), 2.9 m (42019) and
+  1.8 m (42035) at that moment while the model read 0 m, and the 13&ndash;16 s swell Ike had radiated ahead of
+  landfall was missing for the first day (model peak periods 2&ndash;7 s vs. 13&ndash;16 s observed). With the
+  spin-up, structured-grid H<sub>s</sub> correlation rose from 0.67 to 0.85 at Mid Gulf, 0.67 to 0.91 at Freeport
+  and 0.59 to 0.69 at Galveston, and the Freeport first-day bias went from &minus;2.4 m to 0.0 m.</div>
+</section>
+
+<section>
+  <h2>Wave parameters by location</h2>
+  <p class="section-note">H<sub>s</sub>, period, and mean wave direction (MWD, 0&ndash;360&deg; raw &mdash; a jump
+  across the wrap point is not a real direction change) at each of four locations, from deep Gulf water through
+  the SWAN nest boundary to the harbor entrance. Period uses Tp (peak period, from WW3's peak frequency output)
+  for the two Gulf points and T01 (mean period) for the two Galveston points, the field SWAN's own output
+  carried for this run. Hover any chart for hourly values.</p>
+  
+        <div class="loc-card">
+          <div class="loc-head"><h3>Deep water</h3><span class="loc-domain">WW3 &middot; Gulf of Mexico</span></div>
+          <p class="loc-sub">92.5&deg;W, 26.5&deg;N &middot; regional WW3 grid, open water (~2,900 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-ike-gulf_deep-hs"></div>
+                <div class="peakline">peak 11.87 / 12.21 m</div>
+              </div>
+              <script>drawMiniChart('c-ike-gulf_deep-hs', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [4.826, 5.016, 5.194, 5.33, 5.434, 5.558, 5.724, 5.96, 6.286, 6.676, 7.0, 7.28, 7.586, 7.99, 8.502, 9.06, 9.634, 10.286, 10.942, 11.498, 11.812, 11.87, 11.576, 10.978, 10.26, 9.608, 9.216, 9.144, 9.208, 9.308, 9.386, 9.374, 9.24, 8.974, 8.346, 7.728, 7.238, 6.808, 6.372, 6.01, 5.72, 5.448, 5.2, 4.984, 4.802, 4.606, 4.292, 4.008, 3.78, 3.576, 3.38, 3.198, 3.042, 2.916, 2.818, 2.724, 2.626, 2.536, 2.43, 2.324, 2.236, 2.17, 2.126, 2.096, 2.088, 2.106, 2.134, 2.138, 2.102, 2.054, 1.992, 1.942, 1.9], [5.206, 5.366, 5.518, 5.654, 5.792, 5.952, 6.136, 6.39, 6.732, 7.098, 7.406, 7.72, 8.09, 8.53, 9.016, 9.532, 10.092, 10.72, 11.364, 11.878, 12.17, 12.21, 11.964, 11.414, 10.728, 10.114, 9.75, 9.632, 9.674, 9.76, 9.854, 9.864, 9.704, 9.368, 8.722, 8.056, 7.504, 7.046, 6.614, 6.242, 5.926, 5.64, 5.396, 5.178, 4.984, 4.772, 4.464, 4.18, 3.946, 3.738, 3.546, 3.372, 3.214, 3.08, 2.964, 2.848, 2.738, 2.638, 2.528, 2.42, 2.33, 2.258, 2.202, 2.162, 2.144, 2.152, 2.164, 2.156, 2.12, 2.08, 2.03, 1.984, 1.942], {landfallIndex: 43, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>Tp &middot; wave period</h4>
+                <div id="c-ike-gulf_deep-tp"></div>
+                <div class="peakline">peak 16.4 / 16.9 s</div>
+              </div>
+              <script>drawMiniChart('c-ike-gulf_deep-tp', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [15.3846, 15.625, 15.625, 15.873, 15.873, 15.873, 15.873, 15.873, 15.873, 15.873, 15.873, 16.129, 16.129, 16.129, 16.129, 16.129, 16.129, 16.3934, 16.129, 16.129, 15.873, 15.3846, 14.7059, 13.3333, 12.3457, 11.7647, 11.1111, 10.8696, 10.7527, 10.8696, 10.989, 11.1111, 11.1111, 11.1111, 11.1111, 10.989, 10.8696, 10.7527, 10.7527, 10.6383, 10.5263, 10.4167, 10.5263, 10.7527, 10.7527, 8.4746, 10.7527, 10.7527, 10.6383, 10.6383, 9.009, 8.6207, 8.4746, 8.4034, 8.3333, 8.2645, 8.1967, 8.0645, 8.0, 7.874, 7.6923, 7.5758, 7.5188, 7.4627, 7.4074, 7.2993, 7.2464, 7.1942, 7.0922, 6.993, 6.8966, 6.8493, 6.8493], [16.129, 16.129, 16.129, 16.3934, 16.3934, 16.3934, 16.3934, 16.3934, 16.3934, 16.6667, 16.6667, 16.6667, 16.9492, 16.9492, 16.9492, 16.9492, 16.9492, 16.9492, 16.9492, 16.6667, 16.3934, 15.873, 15.1515, 14.0845, 12.1951, 11.7647, 11.236, 10.989, 11.1111, 11.236, 11.4943, 11.6279, 11.7647, 11.7647, 11.7647, 11.6279, 11.3636, 11.236, 11.1111, 10.989, 10.8696, 10.7527, 10.6383, 10.3093, 9.434, 9.1743, 9.0909, 8.8496, 8.6207, 8.547, 8.547, 8.547, 8.4746, 8.4034, 8.3333, 8.2645, 8.1967, 8.1301, 8.0645, 8.0, 7.874, 7.7519, 7.6336, 7.5188, 7.4627, 7.4074, 7.3529, 7.2464, 7.1942, 7.1942, 7.0922, 7.0423, 6.993], {landfallIndex: 43, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-ike-gulf_deep-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-ike-gulf_deep-mwd', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [103.0, 103.0, 102.0, 101.0, 101.0, 100.0, 99.0, 97.0, 96.0, 95.0, 94.0, 93.0, 92.0, 90.0, 89.0, 87.0, 85.0, 83.0, 81.0, 79.0, 77.0, 75.0, 65.0, 47.0, 17.0, 12.0, 334.0, 313.0, 284.0, 261.0, 247.0, 240.0, 237.0, 236.0, 238.0, 243.0, 250.0, 257.0, 265.0, 273.0, 280.0, 226.0, 290.0, 294.0, 296.0, 179.0, 300.0, 301.0, 302.0, 303.0, 150.0, 137.0, 133.0, 129.0, 125.0, 122.0, 120.0, 120.0, 120.0, 129.0, 128.0, 128.0, 127.0, 127.0, 127.0, 127.0, 127.0, 128.0, 133.0, 133.0, 133.0, 132.0, 132.0], [103.0, 103.0, 102.0, 102.0, 101.0, 100.0, 99.0, 97.0, 96.0, 95.0, 93.0, 92.0, 91.0, 90.0, 89.0, 87.0, 86.0, 84.0, 81.0, 78.0, 76.0, 74.0, 62.0, 60.0, 6.0, 359.0, 316.0, 293.0, 269.0, 253.0, 242.0, 242.0, 240.0, 240.0, 245.0, 252.0, 240.0, 245.0, 251.0, 258.0, 265.0, 272.0, 278.0, 232.0, 193.0, 190.0, 188.0, 186.0, 179.0, 174.0, 167.0, 160.0, 152.0, 145.0, 138.0, 134.0, 130.0, 127.0, 125.0, 124.0, 124.0, 132.0, 130.0, 129.0, 128.0, 128.0, 127.0, 127.0, 127.0, 127.0, 134.0, 133.0, 133.0], {landfallIndex: 43, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="loc-card">
+          <div class="loc-head"><h3>Continental shelf</h3><span class="loc-domain">WW3 &middot; Gulf of Mexico</span></div>
+          <p class="loc-sub">94.5&deg;W, 28.5&deg;N &middot; regional WW3 grid, shelf water (~30-35 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-ike-gulf_shelf-hs"></div>
+                <div class="peakline">peak 8.11 / 8.25 m</div>
+              </div>
+              <script>drawMiniChart('c-ike-gulf_shelf-hs', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [2.22, 2.312, 2.39, 2.454, 2.526, 2.624, 2.748, 2.896, 3.042, 3.182, 3.33, 3.494, 3.662, 3.806, 3.944, 4.126, 4.344, 4.54, 4.702, 4.86, 5.054, 5.31, 5.608, 5.81, 5.932, 6.054, 6.284, 6.596, 6.836, 7.012, 7.316, 7.656, 7.962, 8.106, 8.082, 8.01, 7.754, 7.26, 6.824, 6.678, 6.812, 7.142, 7.514, 7.718, 7.536, 7.216, 6.742, 6.392, 5.936, 5.45, 5.05, 4.6, 4.242, 3.976, 3.732, 3.546, 3.45, 3.384, 3.222, 3.008, 2.808, 2.628, 2.486, 2.378, 2.292, 2.226, 2.18, 2.146, 2.106, 2.038, 1.986, 1.948, 1.906], [2.364, 2.47, 2.568, 2.656, 2.748, 2.856, 2.984, 3.13, 3.274, 3.414, 3.56, 3.72, 3.88, 4.024, 4.168, 4.35, 4.566, 4.762, 4.932, 5.098, 5.292, 5.552, 5.84, 6.03, 6.154, 6.276, 6.502, 6.796, 7.03, 7.178, 7.418, 7.792, 8.1, 8.252, 8.252, 8.186, 7.91, 7.414, 6.884, 6.572, 6.708, 7.072, 7.514, 7.764, 7.616, 7.306, 6.796, 6.374, 5.974, 5.52, 5.126, 4.682, 4.314, 4.042, 3.798, 3.608, 3.504, 3.434, 3.274, 3.064, 2.862, 2.682, 2.538, 2.428, 2.336, 2.266, 2.218, 2.18, 2.132, 2.058, 2.006, 1.964, 1.92], {landfallIndex: 43, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>Tp &middot; wave period</h4>
+                <div id="c-ike-gulf_shelf-tp"></div>
+                <div class="peakline">peak 17.2 / 17.9 s</div>
+              </div>
+              <script>drawMiniChart('c-ike-gulf_shelf-tp', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [14.2857, 14.4928, 14.7059, 14.7059, 14.9254, 15.625, 15.873, 15.873, 15.873, 16.129, 16.129, 16.129, 16.3934, 16.3934, 16.3934, 16.6667, 16.6667, 16.6667, 16.9492, 16.9492, 17.2414, 17.2414, 17.2414, 17.2414, 17.2414, 17.2414, 17.2414, 17.2414, 16.9492, 16.6667, 16.3934, 16.129, 15.873, 15.625, 14.7059, 14.0845, 10.101, 9.7087, 9.1743, 8.9286, 9.009, 9.7087, 9.901, 10.5263, 10.6383, 10.6383, 10.5263, 10.3093, 10.101, 9.8039, 9.6154, 9.3458, 9.0909, 9.009, 8.8496, 8.6207, 8.4034, 8.2645, 8.1967, 8.0645, 7.874, 7.7519, 7.7519, 7.7519, 7.874, 7.9365, 8.0, 8.0, 8.0, 7.9365, 7.874, 7.6336, 7.5188], [15.1515, 15.3846, 15.625, 15.873, 16.129, 16.3934, 16.3934, 16.6667, 16.9492, 16.9492, 17.2414, 17.2414, 17.2414, 17.2414, 17.5439, 17.5439, 17.5439, 17.5439, 17.5439, 17.5439, 17.5439, 17.5439, 17.5439, 17.8571, 17.8571, 17.8571, 17.5439, 17.5439, 17.5439, 17.5439, 17.2414, 17.2414, 16.6667, 15.873, 15.625, 14.7059, 10.2041, 9.8039, 9.3458, 8.9286, 9.0909, 9.7087, 10.0, 10.6383, 10.6383, 10.6383, 10.6383, 10.3093, 10.0, 9.8039, 9.6154, 9.3458, 9.0909, 9.009, 8.9286, 8.7719, 8.4746, 8.3333, 8.2645, 8.1967, 8.0645, 7.9365, 7.7519, 7.6923, 7.6336, 7.6923, 7.9365, 7.9365, 7.9365, 7.9365, 7.874, 7.7519, 7.5758], {landfallIndex: 43, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-ike-gulf_shelf-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-ike-gulf_shelf-mwd', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [133.0, 132.0, 132.0, 132.0, 132.0, 135.0, 135.0, 135.0, 134.0, 134.0, 134.0, 134.0, 134.0, 134.0, 134.0, 134.0, 134.0, 134.0, 137.0, 137.0, 137.0, 137.0, 137.0, 137.0, 137.0, 138.0, 138.0, 138.0, 138.0, 134.0, 134.0, 133.0, 133.0, 133.0, 129.0, 130.0, 53.0, 50.0, 21.0, 346.0, 291.0, 259.0, 250.0, 231.0, 227.0, 223.0, 210.0, 208.0, 196.0, 186.0, 179.0, 192.0, 186.0, 180.0, 173.0, 188.0, 183.0, 177.0, 169.0, 161.0, 183.0, 178.0, 171.0, 163.0, 133.0, 130.0, 129.0, 128.0, 128.0, 128.0, 128.0, 132.0, 132.0], [133.0, 136.0, 136.0, 136.0, 136.0, 136.0, 136.0, 136.0, 139.0, 139.0, 139.0, 139.0, 139.0, 139.0, 139.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 138.0, 137.0, 137.0, 133.0, 133.0, 133.0, 129.0, 51.0, 48.0, 19.0, 350.0, 295.0, 261.0, 253.0, 234.0, 231.0, 227.0, 218.0, 213.0, 203.0, 195.0, 188.0, 197.0, 190.0, 185.0, 180.0, 173.0, 185.0, 181.0, 177.0, 171.0, 165.0, 158.0, 178.0, 173.0, 167.0, 160.0, 133.0, 131.0, 130.0, 130.0, 129.0, 136.0, 134.0], {landfallIndex: 43, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="loc-card">
+          <div class="loc-head"><h3>Open boundary</h3><span class="loc-domain">SWAN &middot; Galveston</span></div>
+          <p class="loc-sub">94.28&deg;W, 28.51&deg;N &middot; SWAN mesh, nest boundary node (~35 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-ike-gal_boundary-hs"></div>
+                <div class="peakline">peak 4.12 / 4.31 m</div>
+              </div>
+              <script>drawMiniChart('c-ike-gal_boundary-hs', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [1.07, 1.161, 1.253, 1.338, 1.413, 1.484, 1.556, 1.641, 1.733, 1.817, 1.891, 1.969, 2.059, 2.149, 2.237, 2.318, 2.396, 2.481, 2.582, 2.704, 2.815, 2.905, 2.99, 3.079, 3.176, 3.285, 3.383, 3.455, 3.517, 3.616, 3.729, 3.82, 3.912, 4.017, 4.1, 4.125, 4.043, 3.756, 3.47, 3.509, 3.781, 3.818, 3.749, 3.784, 3.922, 3.952, 3.744, 3.324, 2.956, 2.76, 2.785, 2.701, 2.493, 2.385, 2.315, 2.256, 2.195, 2.184, 2.109, 2.024, 1.934, 1.847, 1.77, 1.694, 1.624, 1.561, 1.502, 1.456, 1.422, 1.393, 1.358, 1.328, 1.299], [1.359, 1.454, 1.548, 1.64, 1.734, 1.829, 1.928, 2.035, 2.144, 2.249, 2.351, 2.457, 2.57, 2.678, 2.78, 2.876, 2.97, 3.062, 3.164, 3.278, 3.374, 3.45, 3.519, 3.587, 3.666, 3.741, 3.811, 3.877, 3.93, 3.993, 4.06, 4.158, 4.225, 4.279, 4.314, 4.258, 4.145, 3.894, 3.605, 3.412, 3.32, 3.315, 3.414, 3.503, 3.623, 3.651, 3.513, 3.172, 2.832, 2.662, 2.652, 2.634, 2.54, 2.492, 2.462, 2.432, 2.386, 2.376, 2.298, 2.214, 2.119, 2.026, 1.942, 1.86, 1.784, 1.714, 1.649, 1.596, 1.554, 1.522, 1.485, 1.451, 1.416], {landfallIndex: 43, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>T01 &middot; wave period</h4>
+                <div id="c-ike-gal_boundary-tp"></div>
+                <div class="peakline">peak 9.4 / 10.6 s</div>
+              </div>
+              <script>drawMiniChart('c-ike-gal_boundary-tp', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [6.104, 6.393, 6.601, 6.747, 6.891, 7.017, 7.113, 7.144, 7.218, 7.432, 7.776, 8.103, 8.3, 8.497, 8.709, 8.888, 8.97, 8.915, 8.815, 8.774, 8.793, 8.82, 8.863, 8.921, 9.02, 9.14, 9.235, 9.297, 9.333, 9.351, 9.414, 9.447, 9.332, 9.008, 8.569, 8.031, 7.636, 7.442, 7.139, 6.652, 6.218, 5.968, 5.812, 5.814, 5.995, 6.092, 6.114, 6.057, 6.087, 6.16, 6.403, 6.518, 6.393, 6.283, 6.167, 6.105, 6.027, 5.908, 5.829, 5.749, 5.71, 5.655, 5.559, 5.465, 5.351, 5.239, 5.145, 5.046, 4.991, 4.964, 4.99, 4.98, 5.017], [7.502, 7.742, 7.94, 8.108, 8.274, 8.451, 8.61, 8.71, 8.81, 8.998, 9.296, 9.599, 9.815, 10.02, 10.2, 10.36, 10.45, 10.45, 10.37, 10.29, 10.27, 10.28, 10.32, 10.37, 10.41, 10.47, 10.51, 10.58, 10.58, 10.55, 10.53, 10.37, 10.14, 10.11, 9.843, 10.12, 10.17, 9.811, 9.132, 8.314, 8.022, 6.873, 5.91, 5.731, 5.832, 5.929, 5.977, 5.992, 6.156, 6.147, 6.261, 6.424, 6.5, 6.522, 6.471, 6.426, 6.359, 6.229, 6.146, 6.064, 6.022, 5.955, 5.851, 5.753, 5.638, 5.521, 5.422, 5.321, 5.251, 5.212, 5.226, 5.209, 5.234], {landfallIndex: 43, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-ike-gal_boundary-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-ike-gal_boundary-mwd', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [235.0, 235.0, 235.0, 235.0, 234.0, 234.0, 235.0, 235.0, 235.0, 234.0, 233.0, 232.0, 232.0, 232.0, 232.0, 232.0, 232.0, 234.0, 235.0, 237.0, 238.0, 240.0, 242.0, 245.0, 246.0, 248.0, 250.0, 253.0, 256.0, 260.0, 263.0, 267.0, 274.0, 285.0, 300.0, 316.0, 324.0, 325.0, 321.0, 316.0, 316.0, 318.0, 322.0, 324.0, 292.0, 181.0, 182.0, 190.0, 200.0, 203.0, 203.0, 201.0, 196.0, 193.0, 190.0, 189.0, 189.0, 190.0, 192.0, 193.0, 195.0, 197.0, 198.0, 199.0, 199.0, 199.0, 200.0, 200.0, 200.0, 201.0, 202.0, 203.0, 204.0], [227.0, 227.0, 227.0, 227.0, 227.0, 226.0, 226.0, 226.0, 226.0, 226.0, 226.0, 225.0, 225.0, 225.0, 225.0, 225.0, 225.0, 226.0, 226.0, 227.0, 228.0, 229.0, 230.0, 231.0, 232.0, 234.0, 235.0, 236.0, 238.0, 241.0, 244.0, 247.0, 253.0, 258.0, 266.0, 267.0, 265.0, 263.0, 267.0, 270.0, 271.0, 278.0, 289.0, 286.0, 264.0, 225.0, 205.0, 205.0, 211.0, 210.0, 207.0, 203.0, 198.0, 196.0, 194.0, 194.0, 194.0, 194.0, 195.0, 196.0, 197.0, 199.0, 199.0, 200.0, 200.0, 201.0, 201.0, 201.0, 201.0, 202.0, 202.0, 203.0, 204.0], {landfallIndex: 43, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="loc-card">
+          <div class="loc-head"><h3>Harbor entrance</h3><span class="loc-domain">SWAN &middot; Galveston</span></div>
+          <p class="loc-sub">94.79&deg;W, 29.285&deg;N &middot; SWAN mesh, nearshore node (~1.8 m)</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="chart-triplet">
+              <div class="chart-mini">
+                <h4>H<sub>s</sub> &middot; significant wave height</h4>
+                <div id="c-ike-gal_nearshore-hs"></div>
+                <div class="peakline">peak 0.95 / 0.98 m</div>
+              </div>
+              <script>drawMiniChart('c-ike-gal_nearshore-hs', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [0.457, 0.491, 0.535, 0.576, 0.607, 0.63, 0.652, 0.677, 0.698, 0.71, 0.722, 0.734, 0.749, 0.763, 0.776, 0.789, 0.808, 0.832, 0.851, 0.863, 0.874, 0.887, 0.896, 0.901, 0.905, 0.909, 0.913, 0.92, 0.932, 0.933, 0.933, 0.933, 0.931, 0.925, 0.918, 0.907, 0.895, 0.882, 0.871, 0.862, 0.853, 0.847, 0.853, 0.884, 0.91, 0.921, 0.939, 0.954, 0.949, 0.935, 0.931, 0.936, 0.942, 0.946, 0.946, 0.943, 0.938, 0.932, 0.925, 0.915, 0.901, 0.883, 0.865, 0.849, 0.834, 0.817, 0.803, 0.795, 0.779, 0.764, 0.744, 0.725, 0.707], [0.565, 0.6, 0.637, 0.67, 0.696, 0.717, 0.738, 0.76, 0.78, 0.796, 0.812, 0.828, 0.844, 0.861, 0.876, 0.891, 0.907, 0.923, 0.934, 0.941, 0.948, 0.954, 0.957, 0.96, 0.963, 0.965, 0.968, 0.972, 0.976, 0.971, 0.967, 0.964, 0.958, 0.95, 0.94, 0.926, 0.91, 0.895, 0.881, 0.87, 0.86, 0.852, 0.858, 0.889, 0.913, 0.926, 0.946, 0.96, 0.954, 0.939, 0.934, 0.938, 0.944, 0.947, 0.947, 0.944, 0.94, 0.936, 0.93, 0.922, 0.91, 0.894, 0.876, 0.861, 0.847, 0.831, 0.817, 0.808, 0.793, 0.778, 0.759, 0.741, 0.724], {landfallIndex: 43, unit: ' m', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>T01 &middot; wave period</h4>
+                <div id="c-ike-gal_nearshore-tp"></div>
+                <div class="peakline">peak 8.8 / 10.6 s</div>
+              </div>
+              <script>drawMiniChart('c-ike-gal_nearshore-tp', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [4.234, 4.277, 4.301, 4.44, 4.585, 4.804, 4.993, 5.112, 5.285, 5.604, 6.001, 6.431, 6.862, 7.308, 7.822, 8.386, 8.704, 8.465, 8.189, 8.126, 8.147, 8.094, 8.046, 8.115, 8.255, 8.439, 8.648, 8.796, 8.588, 8.201, 8.033, 7.959, 7.855, 7.655, 7.285, 6.697, 5.987, 5.226, 4.57, 4.091, 3.845, 3.912, 4.547, 5.535, 6.436, 7.036, 7.427, 7.411, 6.959, 6.441, 6.266, 6.479, 6.831, 7.045, 7.065, 6.967, 6.787, 6.586, 6.435, 6.317, 6.174, 5.973, 5.736, 5.515, 5.336, 5.196, 5.067, 4.943, 4.851, 4.749, 4.654, 4.567, 4.495], [5.635, 5.8, 5.913, 6.06, 6.291, 6.571, 6.837, 7.041, 7.229, 7.582, 8.015, 8.459, 8.859, 9.256, 9.725, 10.25, 10.59, 10.4, 10.06, 9.927, 9.925, 9.853, 9.736, 9.724, 9.811, 9.958, 10.12, 10.23, 9.995, 9.499, 9.184, 9.004, 8.814, 8.531, 8.085, 7.381, 6.561, 5.678, 4.893, 4.329, 3.985, 4.015, 4.634, 5.618, 6.506, 7.13, 7.588, 7.605, 7.119, 6.541, 6.319, 6.516, 6.873, 7.09, 7.1, 6.999, 6.845, 6.687, 6.576, 6.488, 6.367, 6.182, 5.951, 5.733, 5.555, 5.415, 5.287, 5.16, 5.064, 4.968, 4.881, 4.798, 4.736], {landfallIndex: 43, unit: ' s', decimals: 1, zeroBased: false, dots: false});</script>
+            
+              <div class="chart-mini">
+                <h4>MWD &middot; mean direction</h4>
+                <div id="c-ike-gal_nearshore-mwd"></div>
+                <div class="peakline">0&ndash;360&deg;, circular</div>
+              </div>
+              <script>drawMiniChart('c-ike-gal_nearshore-mwd', ["2008-09-11T12:00:00", "2008-09-11T13:00:00", "2008-09-11T14:00:00", "2008-09-11T15:00:00", "2008-09-11T16:00:00", "2008-09-11T17:00:00", "2008-09-11T18:00:00", "2008-09-11T19:00:00", "2008-09-11T20:00:00", "2008-09-11T21:00:00", "2008-09-11T22:00:00", "2008-09-11T23:00:00", "2008-09-12T00:00:00", "2008-09-12T01:00:00", "2008-09-12T02:00:00", "2008-09-12T03:00:00", "2008-09-12T04:00:00", "2008-09-12T05:00:00", "2008-09-12T06:00:00", "2008-09-12T07:00:00", "2008-09-12T08:00:00", "2008-09-12T09:00:00", "2008-09-12T10:00:00", "2008-09-12T11:00:00", "2008-09-12T12:00:00", "2008-09-12T13:00:00", "2008-09-12T14:00:00", "2008-09-12T15:00:00", "2008-09-12T16:00:00", "2008-09-12T17:00:00", "2008-09-12T18:00:00", "2008-09-12T19:00:00", "2008-09-12T20:00:00", "2008-09-12T21:00:00", "2008-09-12T22:00:00", "2008-09-12T23:00:00", "2008-09-13T00:00:00", "2008-09-13T01:00:00", "2008-09-13T02:00:00", "2008-09-13T03:00:00", "2008-09-13T04:00:00", "2008-09-13T05:00:00", "2008-09-13T06:00:00", "2008-09-13T07:00:00", "2008-09-13T08:00:00", "2008-09-13T09:00:00", "2008-09-13T10:00:00", "2008-09-13T11:00:00", "2008-09-13T12:00:00", "2008-09-13T13:00:00", "2008-09-13T14:00:00", "2008-09-13T15:00:00", "2008-09-13T16:00:00", "2008-09-13T17:00:00", "2008-09-13T18:00:00", "2008-09-13T19:00:00", "2008-09-13T20:00:00", "2008-09-13T21:00:00", "2008-09-13T22:00:00", "2008-09-13T23:00:00", "2008-09-14T00:00:00", "2008-09-14T01:00:00", "2008-09-14T02:00:00", "2008-09-14T03:00:00", "2008-09-14T04:00:00", "2008-09-14T05:00:00", "2008-09-14T06:00:00", "2008-09-14T07:00:00", "2008-09-14T08:00:00", "2008-09-14T09:00:00", "2008-09-14T10:00:00", "2008-09-14T11:00:00", "2008-09-14T12:00:00"], [138.0, 138.0, 137.0, 138.0, 139.0, 141.0, 141.0, 142.0, 142.0, 144.0, 146.0, 148.0, 149.0, 151.0, 152.0, 154.0, 154.0, 152.0, 150.0, 149.0, 148.0, 146.0, 145.0, 144.0, 144.0, 145.0, 146.0, 146.0, 144.0, 141.0, 139.0, 137.0, 136.0, 134.0, 131.0, 128.0, 124.0, 120.0, 115.0, 110.0, 106.0, 104.0, 109.0, 116.0, 121.0, 126.0, 137.0, 149.0, 158.0, 164.0, 167.0, 168.0, 168.0, 168.0, 167.0, 166.0, 165.0, 164.0, 163.0, 162.0, 162.0, 162.0, 162.0, 162.0, 161.0, 161.0, 161.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0], [148.0, 148.0, 148.0, 148.0, 149.0, 150.0, 151.0, 151.0, 151.0, 152.0, 153.0, 154.0, 155.0, 156.0, 157.0, 158.0, 158.0, 157.0, 155.0, 154.0, 154.0, 153.0, 152.0, 151.0, 151.0, 151.0, 152.0, 152.0, 150.0, 148.0, 145.0, 144.0, 142.0, 139.0, 137.0, 133.0, 129.0, 124.0, 119.0, 114.0, 109.0, 107.0, 111.0, 117.0, 122.0, 127.0, 138.0, 151.0, 159.0, 164.0, 167.0, 168.0, 168.0, 168.0, 167.0, 166.0, 165.0, 164.0, 164.0, 163.0, 163.0, 163.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0, 162.0], {landfallIndex: 43, unit: 'deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+</section>
+
+<section>
+  <h2>Peak value summary</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Location</th><th class="num">H<sub>s</sub> struct. (m)</th><th class="num">H<sub>s</sub> unstruct. (m)</th>
+      <th class="num">Difference</th><th class="num">Period struct. (s)</th><th class="num">Period unstruct. (s)</th></tr></thead>
+    <tbody><tr><td>Deep water</td><td class='num'>11.87</td><td class='num'>12.21</td><td class='num'>+2.9%</td><td class='num'>16.4</td><td class='num'>16.9</td></tr><tr><td>Continental shelf</td><td class='num'>8.11</td><td class='num'>8.25</td><td class='num'>+1.8%</td><td class='num'>17.2</td><td class='num'>17.9</td></tr><tr><td>Open boundary</td><td class='num'>4.12</td><td class='num'>4.31</td><td class='num'>+4.6%</td><td class='num'>9.4</td><td class='num'>10.6</td></tr><tr><td>Harbor entrance</td><td class='num'>0.95</td><td class='num'>0.98</td><td class='num'>+2.3%</td><td class='num'>8.8</td><td class='num'>10.6</td></tr></tbody>
+  </table>
+  </div>
+  <div class="note-box"><strong>Reading the difference column:</strong> a few percent is the expected,
+  physically reasonable sensitivity to regional grid resolution &mdash; the unstructured mesh resolves
+  shelf and nearshore bathymetry more finely than the 0.1&deg; (~10 km) structured grid. Before the
+  <code>UNST%SF</code> fix, the same comparison showed the unstructured grid underestimating the
+  structured grid by a factor of 5&ndash;6&times;, caused by ~98% of the unstructured mesh's nodes being
+  silently marked dry.</div>
+</section>
+
+<section>
+  <h2>Observed vs. modeled &mdash; NDBC buoys</h2>
+  <p class="section-note">Real wave-height observations from three NDBC buoys spanning the same range as the
+  synthetic reference points above, compared against both grid types at their nearest node. Bias, RMSE, and
+  correlation computed on hourly-matched H<sub>s</sub> over the 72-hour scoring window.</p>
+  
+        <div class="buoy-card">
+          <div class="buoy-head"><h3>Mid Gulf</h3><span class="buoy-id">NDBC 42001 &middot; -89.64&deg;W 25.92&deg;N</span></div>
+          <p class="buoy-sub">Compared against the regional WW3 Gulf grid, hourly, nearest valid observation within 30 min.</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-obs)"></span>NDBC observed</span>
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="buoy-quad">
+              <div class="buoy-param">
+                <h4>H<sub>s</sub> &middot; wave height</h4>
+                
+                <div id="buoy-ike-42001-hs"></div>
+                <div class="buoy-stat-line"><span>struct: bias +0.66m rmse 1.70m corr 0.90 (n=73)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +1.19m rmse 2.24m corr 0.90 (n=73)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42001-hs', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [7.67, 7.6, 8.6, 8.98, 8.46, 9.23, 8.45, 9.25, 8.01, 7.12, 6.15, 4.77, 4.28, 4.91, 5.06, 6.02, 6.33, 7.16, 6.22, 7.88, 8.28, 7.8, 7.92, 7.54, 7.56, 6.79, 7.29, 7.51, 6.35, 6.37, 6.16, 6.59, 6.1, 6.26, 5.57, 5.83, 5.58, 5.26, 5.14, 4.58, 3.92, 4.32, 4.53, 3.61, 3.81, 3.41, 3.26, 3.26, 3.14, 3.17, 3.1, 2.9, 2.86, 3.02, 2.85, 2.98, 2.84, 2.8, 2.59, 2.82, 2.67, 2.48, 2.29, 2.27, 2.24, 2.11, 1.97, 1.96, 1.71, 1.75, 1.58, 1.67, 1.52], [9.302, 9.938, 10.602, 11.154, 11.59, 11.898, 12.038, 11.906, 11.252, 9.708, 8.22, 7.428, 8.196, 9.014, 9.586, 9.974, 10.166, 10.196, 10.094, 9.898, 9.546, 9.024, 8.438, 7.832, 7.326, 6.898, 6.546, 6.25, 5.966, 5.738, 5.58, 5.422, 5.236, 5.056, 4.826, 4.634, 4.496, 4.376, 4.266, 4.168, 4.072, 3.96, 3.832, 3.732, 3.666, 3.6, 3.488, 3.39, 3.29, 3.192, 3.104, 3.012, 2.914, 2.812, 2.712, 2.62, 2.53, 2.444, 2.354, 2.266, 2.19, 2.122, 2.07, 2.034, 2.008, 1.978, 1.948, 1.92, 1.89, 1.856, 1.804, 1.752, 1.708], [9.758, 10.368, 11.084, 11.804, 12.39, 12.858, 13.162, 13.226, 12.814, 11.554, 10.21, 9.168, 9.098, 9.952, 10.558, 10.898, 11.088, 11.158, 11.128, 10.952, 10.642, 10.102, 9.47, 8.818, 8.238, 7.724, 7.296, 6.932, 6.608, 6.342, 6.142, 5.958, 5.748, 5.55, 5.298, 5.074, 4.906, 4.766, 4.64, 4.526, 4.406, 4.268, 4.124, 4.016, 3.94, 3.852, 3.704, 3.57, 3.446, 3.33, 3.226, 3.128, 3.03, 2.934, 2.838, 2.744, 2.65, 2.558, 2.46, 2.366, 2.282, 2.208, 2.144, 2.096, 2.058, 2.024, 1.992, 1.962, 1.928, 1.89, 1.836, 1.782, 1.734], {unit: 'm', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Wind speed</h4>
+                
+                <div id="buoy-ike-42001-wspd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +1.68m/s rmse 3.33m/s corr 0.96 (n=73)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +1.64m/s rmse 3.60m/s corr 0.95 (n=73)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42001-wspd', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [20.3, 21.1, 20.9, 22.1, 22.3, 21.6, 23.1, 25.2, 20.6, 19.9, 15.5, 12.6, 24.0, 23.2, 28.5, 30.1, 28.5, 27.5, 25.5, 24.5, 23.2, 21.4, 21.5, 19.2, 21.2, 19.7, 19.2, 18.5, 17.5, 15.9, 15.5, 15.1, 13.7, 14.0, 12.8, 13.0, 12.9, 12.8, 11.8, 10.8, 11.7, 12.0, 12.1, 13.3, 12.9, 11.9, 11.4, 10.9, 9.5, 9.2, 9.9, 8.8, 8.1, 7.1, 7.2, 8.0, 8.9, 8.2, 7.0, 6.4, 8.2, 7.1, 7.8, 8.0, 8.0, 9.0, 8.6, 9.8, 9.0, 9.6, 8.6, 7.8, 6.2], [23.803, 25.4, 27.122, 28.385, 29.563, 30.563, 31.105, 30.948, 27.987, 18.918, 10.602, 20.652, 27.309, 32.208, 33.943, 33.985, 33.318, 32.16, 30.835, 29.235, 27.464, 25.449, 22.798, 21.152, 19.752, 18.476, 17.614, 16.665, 15.845, 15.797, 16.01, 15.718, 14.8, 14.523, 11.792, 12.391, 12.691, 13.07, 13.092, 13.427, 13.14, 12.462, 11.789, 12.51, 13.01, 12.625, 10.977, 10.913, 9.799, 9.898, 9.706, 9.577, 9.381, 9.209, 9.0, 8.841, 8.683, 8.591, 7.824, 7.864, 8.062, 8.147, 8.605, 9.043, 9.168, 9.155, 9.144, 9.061, 8.839, 8.504, 7.17, 7.14, 7.122], [23.633, 25.433, 27.247, 28.721, 30.008, 31.106, 31.81, 31.64, 27.424, 15.576, 5.197, 16.919, 25.806, 32.205, 34.537, 34.695, 34.069, 32.853, 31.594, 29.929, 28.104, 25.968, 23.461, 21.734, 20.241, 18.881, 17.839, 16.857, 16.223, 16.14, 16.468, 15.962, 15.022, 14.654, 11.885, 12.572, 12.813, 13.103, 13.345, 13.592, 13.241, 12.485, 12.176, 12.953, 13.37, 12.846, 10.754, 10.778, 9.666, 9.588, 9.571, 9.489, 9.381, 9.209, 9.08, 8.92, 8.683, 8.528, 7.606, 7.716, 7.849, 7.931, 8.387, 8.762, 8.95, 9.003, 8.994, 8.92, 8.698, 8.298, 7.094, 7.122, 7.043], {unit: 'm/s', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Tp &middot; peak period</h4>
+                
+                <div id="buoy-ike-42001-tp"></div>
+                <div class="buoy-stat-line"><span>struct: bias +0.87s rmse 2.08s corr 0.69 (n=73)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +1.35s rmse 2.23s corr 0.76 (n=73)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42001-tp', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [13.79, 13.79, 16.0, 14.81, 13.79, 13.79, 13.79, 13.79, 12.9, 11.43, 10.0, 13.79, 13.79, 16.0, 14.81, 8.33, 9.09, 9.09, 10.81, 9.09, 12.12, 11.43, 10.81, 10.81, 10.81, 11.43, 10.81, 11.43, 11.43, 11.43, 10.81, 10.81, 10.81, 10.0, 10.0, 10.0, 10.0, 9.09, 9.09, 10.0, 10.0, 10.0, 10.81, 8.33, 8.33, 9.09, 8.33, 9.09, 9.09, 8.33, 8.33, 8.33, 9.09, 9.09, 8.33, 8.33, 8.33, 7.69, 8.33, 7.14, 7.69, 7.69, 7.69, 10.0, 6.67, 7.14, 7.14, 7.14, 7.14, 7.14, 6.67, 6.67, 6.25], [15.625, 15.625, 15.385, 15.385, 15.152, 14.925, 14.493, 14.085, 13.333, 12.821, 12.048, 11.765, 10.526, 10.638, 10.989, 11.494, 11.765, 11.765, 11.905, 11.765, 11.765, 11.628, 11.494, 11.364, 11.236, 10.989, 10.753, 10.638, 10.638, 10.638, 10.526, 10.526, 10.526, 9.434, 10.753, 11.236, 11.494, 11.628, 11.628, 11.765, 11.765, 11.765, 11.905, 11.905, 11.905, 11.765, 11.765, 11.765, 11.765, 11.765, 11.765, 11.765, 11.628, 11.628, 11.364, 11.111, 10.989, 10.87, 10.753, 10.638, 6.757, 6.711, 6.667, 6.623, 6.623, 6.579, 6.579, 6.579, 6.579, 6.579, 6.623, 6.623, 6.667], [16.129, 16.129, 16.129, 16.129, 16.129, 15.873, 15.625, 15.385, 14.925, 14.706, 14.493, 14.085, 13.158, 11.236, 11.494, 11.905, 12.195, 12.346, 12.658, 12.821, 12.658, 12.5, 12.346, 12.048, 11.905, 11.765, 11.628, 11.628, 11.494, 11.364, 11.111, 10.989, 10.989, 11.111, 11.364, 11.628, 11.628, 11.765, 11.765, 11.765, 11.905, 11.905, 11.905, 11.905, 11.905, 11.905, 11.905, 11.905, 11.905, 11.765, 11.765, 11.765, 11.765, 11.765, 11.628, 11.494, 11.236, 11.111, 10.87, 7.042, 6.993, 6.944, 6.897, 6.849, 6.803, 6.711, 6.711, 6.667, 6.623, 6.623, 6.623, 6.667, 6.667], {unit: 's', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>MWD &middot; direction</h4>
+                <p class="buoy-param-note">circular; bias/RMSE only</p>
+                <div id="buoy-ike-42001-mwd"></div>
+                <div class="buoy-stat-line"><span>struct: n=0, insufficient data</span></div>
+                <div class="buoy-stat-line"><span>unstruct: n=0, insufficient data</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42001-mwd', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], [94.0, 92.0, 90.0, 81.0, 78.0, 75.0, 72.0, 70.0, 57.0, 61.0, 46.0, 54.0, 70.0, 171.0, 185.0, 190.0, 188.0, 191.0, 193.0, 194.0, 196.0, 200.0, 207.0, 194.0, 199.0, 205.0, 212.0, 217.0, 223.0, 229.0, 235.0, 240.0, 246.0, 172.0, 254.0, 258.0, 272.0, 274.0, 276.0, 277.0, 278.0, 280.0, 281.0, 282.0, 284.0, 285.0, 286.0, 287.0, 288.0, 289.0, 289.0, 290.0, 290.0, 291.0, 289.0, 290.0, 290.0, 291.0, 291.0, 292.0, 147.0, 147.0, 146.0, 145.0, 145.0, 144.0, 144.0, 143.0, 143.0, 143.0, 143.0, 143.0, 143.0], [98.0, 96.0, 94.0, 92.0, 90.0, 88.0, 86.0, 84.0, 72.0, 75.0, 80.0, 86.0, 88.0, 139.0, 149.0, 168.0, 178.0, 183.0, 186.0, 184.0, 189.0, 191.0, 195.0, 199.0, 204.0, 211.0, 217.0, 224.0, 206.0, 211.0, 216.0, 221.0, 226.0, 232.0, 237.0, 261.0, 264.0, 266.0, 268.0, 270.0, 272.0, 274.0, 276.0, 278.0, 279.0, 281.0, 282.0, 284.0, 285.0, 286.0, 287.0, 288.0, 288.0, 289.0, 289.0, 288.0, 288.0, 289.0, 289.0, 152.0, 151.0, 151.0, 150.0, 150.0, 149.0, 149.0, 148.0, 147.0, 147.0, 146.0, 146.0, 146.0, 146.0], {unit: ' deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="buoy-card">
+          <div class="buoy-head"><h3>Freeport, TX</h3><span class="buoy-id">NDBC 42019 &middot; -95.34&deg;W 27.91&deg;N</span></div>
+          <p class="buoy-sub">Compared against the regional WW3 Gulf grid, hourly, nearest valid observation within 30 min.</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-obs)"></span>NDBC observed</span>
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="buoy-quad">
+              <div class="buoy-param">
+                <h4>H<sub>s</sub> &middot; wave height</h4>
+                
+                <div id="buoy-ike-42019-hs"></div>
+                <div class="buoy-stat-line"><span>struct: bias +0.58m rmse 0.89m corr 0.89 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.73m rmse 0.97m corr 0.90 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42019-hs', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [2.92, 3.33, 3.14, 3.33, 3.36, 3.22, 3.24, 3.34, 3.52, 3.71, 3.69, 3.58, 3.33, 3.78, 3.67, 3.92, 3.41, 3.35, 3.44, 3.54, 3.61, 3.66, 3.63, 4.1, 4.26, 4.05, 3.99, null, 4.54, 4.97, 4.95, 4.95, 4.66, 5.44, 5.15, 5.41, 6.13, 6.06, 6.31, 6.18, 4.98, 4.58, 4.0, 3.25, 3.29, 2.86, 2.54, 2.71, 2.64, 2.53, 2.92, 3.07, 3.0, 2.62, 2.45, 2.29, 2.18, 2.24, 1.99, 1.98, 2.06, 1.95, 2.0, 2.02, 2.13, 2.07, 2.07, 2.06, 1.99, 2.1, 1.68, 1.63, 1.55], [2.094, 2.274, 2.438, 2.58, 2.708, 2.832, 2.966, 3.114, 3.272, 3.422, 3.552, 3.684, 3.828, 3.964, 4.054, 4.128, 4.24, 4.37, 4.486, 4.578, 4.652, 4.738, 4.888, 5.064, 5.176, 5.234, 5.28, 5.354, 5.538, 5.8, 5.966, 6.088, 6.326, 6.534, 6.596, 6.662, 6.658, 6.536, 6.366, 6.166, 5.926, 5.698, 5.418, 5.102, 4.686, 4.336, 4.17, 4.1, 4.05, 4.022, 3.96, 3.852, 3.714, 3.552, 3.362, 3.172, 3.014, 2.91, 2.794, 2.67, 2.544, 2.414, 2.29, 2.176, 2.086, 2.02, 1.98, 1.956, 1.948, 1.948, 1.928, 1.89, 1.84], [2.348, 2.524, 2.702, 2.88, 3.054, 3.224, 3.394, 3.566, 3.744, 3.918, 4.074, 4.222, 4.368, 4.504, 4.604, 4.69, 4.804, 4.926, 5.032, 5.116, 5.186, 5.262, 5.376, 5.518, 5.61, 5.634, 5.65, 5.684, 5.8, 5.982, 6.082, 6.136, 6.228, 6.344, 6.454, 6.476, 6.53, 6.444, 6.306, 6.092, 5.862, 5.61, 5.356, 5.034, 4.644, 4.286, 4.044, 3.908, 3.822, 3.788, 3.774, 3.72, 3.634, 3.514, 3.352, 3.17, 3.014, 2.91, 2.784, 2.654, 2.532, 2.416, 2.306, 2.206, 2.124, 2.062, 2.02, 1.988, 1.972, 1.962, 1.936, 1.896, 1.848], {unit: 'm', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Wind speed</h4>
+                
+                <div id="buoy-ike-42019-wspd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +2.54m/s rmse 3.24m/s corr 0.97 (n=73)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +2.34m/s rmse 2.98m/s corr 0.97 (n=73)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42019-wspd', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [5.7, 6.2, 6.5, 6.7, 6.5, 5.9, 8.4, 7.5, 8.3, 9.2, 9.1, 9.7, 9.5, 9.5, 8.7, 8.5, 9.8, 9.2, 11.1, 11.1, 11.3, 12.5, 11.1, 11.6, 12.0, 13.1, 13.3, 14.6, 13.9, 14.2, 15.5, 16.0, 17.1, 17.4, 18.8, 17.9, 19.2, 20.2, 21.5, 20.6, 19.6, 18.4, 17.1, 17.4, 14.5, 14.1, 14.3, 12.2, 12.7, 14.2, 13.5, 12.4, 11.6, 10.8, 9.8, 9.1, 8.6, 9.2, 9.3, 8.5, 7.7, 7.3, 7.8, 8.7, 8.4, 7.2, 7.4, 7.3, 5.5, 6.1, 5.9, 5.9, 9.3], [6.401, 6.604, 6.896, 6.946, 6.72, 6.943, 7.569, 8.49, 9.513, 9.155, 8.628, 9.197, 10.112, 10.466, 9.64, 10.515, 12.192, 11.703, 11.76, 12.349, 12.977, 13.871, 14.699, 14.036, 13.568, 14.5, 15.605, 16.501, 17.548, 18.707, 19.791, 21.064, 22.156, 23.069, 23.526, 24.296, 24.939, 25.057, 24.954, 24.897, 24.629, 24.312, 24.003, 23.264, 21.676, 20.247, 19.117, 17.127, 15.628, 15.133, 15.243, 14.957, 14.677, 13.999, 12.981, 12.248, 11.936, 12.051, 10.728, 10.12, 9.669, 9.166, 8.828, 8.702, 8.901, 9.0, 9.205, 9.105, 9.305, 9.202, 8.21, 7.916, 7.125], [6.265, 6.466, 6.896, 6.896, 6.742, 6.877, 7.428, 8.422, 9.372, 9.155, 8.627, 9.052, 9.97, 10.474, 9.605, 10.346, 11.921, 11.628, 11.676, 12.317, 12.85, 13.735, 14.414, 13.876, 13.413, 14.214, 15.305, 16.108, 17.129, 18.317, 19.194, 20.573, 21.58, 22.566, 22.859, 23.713, 24.384, 24.394, 24.328, 24.334, 24.035, 23.723, 23.403, 22.642, 21.284, 19.834, 18.702, 16.83, 15.425, 15.062, 15.008, 14.703, 14.463, 13.953, 12.962, 12.2, 11.936, 12.021, 10.728, 10.081, 9.749, 9.278, 8.927, 8.701, 9.0, 9.001, 9.202, 9.102, 9.402, 9.202, 8.205, 7.916, 7.125], {unit: 'm/s', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Tp &middot; peak period</h4>
+                
+                <div id="buoy-ike-42019-tp"></div>
+                <div class="buoy-stat-line"><span>struct: bias +1.22s rmse 2.67s corr 0.77 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +1.62s rmse 3.12s corr 0.78 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42019-tp', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [14.29, 14.29, 14.29, 14.29, 12.5, 14.29, 14.29, 14.29, 14.29, 14.29, 14.29, 14.29, 14.29, 14.29, 14.29, 14.29, 12.5, 12.5, 12.5, 11.11, 11.11, 11.11, 11.11, 11.11, 12.5, 12.5, 10.0, null, 11.11, 11.11, 12.5, 10.0, 12.5, 12.5, 7.69, 9.09, 7.69, 7.69, 8.33, 9.09, 9.09, 9.09, 9.09, 9.09, 9.09, 9.09, 8.33, 8.33, 8.33, 7.14, 7.69, 8.33, 9.09, 9.09, 8.33, 7.69, 7.69, 7.69, 7.69, 10.0, 10.0, 9.09, 8.33, 10.0, 7.69, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0], [13.158, 13.333, 13.699, 14.286, 14.493, 14.706, 14.925, 15.385, 15.625, 15.625, 15.625, 15.873, 15.873, 15.873, 16.129, 16.129, 16.129, 16.129, 16.393, 16.393, 16.393, 16.667, 16.667, 16.949, 16.949, 16.949, 16.949, 16.667, 16.393, 16.129, 16.129, 15.873, 15.625, 14.706, 12.048, 11.765, 11.236, 10.526, 10.101, 9.434, 9.259, 9.009, 8.772, 8.475, 8.197, 8.0, 7.812, 7.874, 8.13, 8.403, 8.547, 8.403, 8.333, 8.197, 7.937, 7.692, 7.576, 7.519, 8.85, 8.772, 8.696, 8.621, 8.475, 8.403, 8.333, 8.333, 8.333, 8.264, 8.264, 8.197, 8.13, 8.065, 8.0], [14.493, 14.706, 14.925, 15.385, 15.625, 15.873, 15.873, 16.129, 16.129, 16.393, 16.393, 16.667, 16.667, 16.949, 16.949, 16.949, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 17.241, 16.949, 16.393, 16.129, 15.873, 15.385, 11.905, 10.753, 10.526, 10.101, 9.346, 9.174, 9.009, 8.772, 8.547, 8.264, 8.065, 7.752, 7.692, 7.812, 8.065, 8.197, 8.264, 8.197, 8.13, 8.065, 7.812, 7.634, 7.519, 7.519, 8.772, 8.772, 8.772, 8.696, 8.621, 8.475, 8.403, 8.403, 8.333, 8.264, 8.197, 8.197, 8.13, 8.065], {unit: 's', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>MWD &middot; direction</h4>
+                <p class="buoy-param-note">circular; bias/RMSE only</p>
+                <div id="buoy-ike-42019-mwd"></div>
+                <div class="buoy-stat-line"><span>struct: bias -9.22deg rmse 39.39deg (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -6.54deg rmse 37.34deg (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42019-mwd', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [116.0, 111.0, 110.0, 108.0, 110.0, 106.0, 108.0, 105.0, 105.0, 105.0, 104.0, 104.0, 105.0, 104.0, 105.0, 105.0, 104.0, 107.0, 104.0, 101.0, 104.0, 104.0, 102.0, 102.0, 98.0, 97.0, 93.0, null, 91.0, 92.0, 97.0, 92.0, 95.0, 92.0, 60.0, 79.0, 52.0, 41.0, 41.0, 57.0, 63.0, 64.0, 58.0, 53.0, 50.0, 50.0, 319.0, 283.0, 246.0, 208.0, 210.0, 205.0, 198.0, 212.0, 200.0, 205.0, 206.0, 202.0, 202.0, 98.0, 103.0, 99.0, 115.0, 95.0, 106.0, 99.0, 107.0, 103.0, 106.0, 101.0, 116.0, 110.0, 114.0], [109.0, 109.0, 109.0, 111.0, 111.0, 111.0, 111.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 113.0, 115.0, 115.0, 115.0, 113.0, 113.0, 113.0, 113.0, 113.0, 112.0, 108.0, 86.0, 83.0, 57.0, 54.0, 21.0, 343.0, 336.0, 327.0, 318.0, 292.0, 284.0, 272.0, 244.0, 231.0, 198.0, 195.0, 192.0, 189.0, 185.0, 180.0, 173.0, 190.0, 184.0, 177.0, 123.0, 120.0, 117.0, 127.0, 123.0, 119.0, 116.0, 114.0, 113.0, 113.0, 113.0, 114.0, 115.0, 115.0, 116.0], [110.0, 110.0, 110.0, 112.0, 112.0, 112.0, 112.0, 112.0, 112.0, 112.0, 112.0, 112.0, 112.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 115.0, 112.0, 112.0, 112.0, 112.0, 84.0, 59.0, 54.0, 24.0, 345.0, 337.0, 329.0, 321.0, 294.0, 287.0, 278.0, 252.0, 236.0, 226.0, 196.0, 193.0, 190.0, 187.0, 183.0, 178.0, 190.0, 185.0, 180.0, 174.0, 122.0, 119.0, 116.0, 115.0, 122.0, 120.0, 117.0, 116.0, 115.0, 114.0, 114.0, 115.0, 115.0, 116.0], {unit: ' deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+        <div class="buoy-card">
+          <div class="buoy-head"><h3>Galveston, TX</h3><span class="buoy-id">NDBC 42035 &middot; -94.41&deg;W 29.23&deg;N</span></div>
+          <p class="buoy-sub">Compared against the SWAN Galveston mesh, hourly, nearest valid observation within 30 min.</p>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--series-obs)"></span>NDBC observed</span>
+            <span><span class="swatch" style="background:var(--series-structured)"></span>Structured</span>
+            <span><span class="swatch" style="background:var(--series-unstructured)"></span>Unstructured</span>
+          </div>
+          <div class="buoy-quad">
+              <div class="buoy-param">
+                <h4>H<sub>s</sub> &middot; wave height</h4>
+                
+                <div id="buoy-ike-42035-hs"></div>
+                <div class="buoy-stat-line"><span>struct: bias -0.88m rmse 1.33m corr 0.75 (n=65)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias -0.76m rmse 1.21m corr 0.78 (n=65)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42035-hs', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [1.76, 1.86, 1.76, 1.95, 1.96, 2.27, 2.27, 2.46, 2.47, 2.48, 2.72, 2.31, 2.76, 2.71, 2.77, 3.38, 3.58, 3.36, 3.36, 3.6, null, 3.66, 3.92, 4.49, 5.09, 5.31, 5.73, 5.7, 5.99, 5.23, 5.95, 5.08, 5.16, 4.63, 4.79, 5.67, null, null, null, null, null, 6.03, 4.89, 3.06, 3.54, 4.9, null, null, 5.37, 5.44, 5.46, 4.73, 4.81, 3.86, 3.95, 3.25, 3.07, 2.73, 2.62, 2.44, 2.32, 1.92, 1.76, 1.69, 1.54, 1.6, 1.55, 1.28, 1.19, 1.18, 1.23, 1.22, 1.18], [0.777, 0.851, 0.916, 0.951, 0.977, 1.012, 1.071, 1.143, 1.18, 1.201, 1.223, 1.266, 1.324, 1.33, 1.329, 1.414, 1.603, 1.793, 1.913, 2.005, 2.142, 2.263, 2.336, 2.389, 2.422, 2.451, 2.531, 2.691, 2.915, 3.07, 3.245, 3.426, 3.64, 3.863, 4.093, 4.322, 4.532, 4.693, 4.796, 4.745, 4.468, 4.463, 4.394, 4.222, 4.155, 4.568, 4.948, 5.237, 5.261, 5.125, 4.971, 4.701, 4.301, 3.943, 3.645, 3.35, 3.108, 2.904, 2.662, 2.466, 2.228, 2.018, 1.883, 1.803, 1.726, 1.673, 1.633, 1.611, 1.529, 1.459, 1.367, 1.29, 1.203], [0.875, 0.956, 1.027, 1.071, 1.11, 1.157, 1.222, 1.298, 1.349, 1.385, 1.425, 1.478, 1.546, 1.574, 1.597, 1.679, 1.849, 2.028, 2.153, 2.236, 2.372, 2.489, 2.558, 2.609, 2.637, 2.666, 2.735, 2.889, 3.102, 3.264, 3.42, 3.605, 3.805, 4.014, 4.222, 4.44, 4.628, 4.771, 4.859, 4.792, 4.513, 4.506, 4.427, 4.27, 4.235, 4.663, 5.041, 5.302, 5.285, 5.131, 4.98, 4.714, 4.317, 3.955, 3.656, 3.372, 3.146, 2.959, 2.733, 2.539, 2.297, 2.084, 1.948, 1.867, 1.787, 1.729, 1.691, 1.663, 1.584, 1.512, 1.419, 1.343, 1.258], {unit: 'm', decimals: 2, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>Wind speed</h4>
+                <p class="buoy-param-note">read from the actual GAHM+ERA5 forcing field, not SWAN's own BLOCK wind output -- that diagnostic was found not to reflect the input forcing at all (verified by injecting an extreme value into the wind file and confirming it never appeared in the output)</p>
+                <div id="buoy-ike-42035-wspd"></div>
+                <div class="buoy-stat-line"><span>struct: bias +3.14m/s rmse 4.82m/s corr 0.90 (n=72)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +3.14m/s rmse 4.82m/s corr 0.90 (n=72)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42035-wspd', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [6.5, 7.2, 7.2, 7.3, 7.7, 7.9, 7.3, 7.7, 8.6, 9.3, 8.2, 7.7, 7.8, 8.3, 10.4, 10.8, 12.3, 11.5, 11.5, 12.3, 13.6, 13.3, 13.2, 14.8, 14.4, 14.5, 14.9, 14.0, 15.1, 14.0, 17.1, 18.2, 19.6, 20.2, 22.5, 23.0, 23.4, null, 25.2, 24.8, 25.1, 22.7, 4.7, 7.3, 27.3, 27.9, 24.9, 21.5, 20.5, 19.4, 18.1, 15.3, 12.2, 13.9, 12.5, 11.8, 11.3, 10.3, 11.0, 10.6, 10.1, 8.5, 9.3, 9.8, 9.6, 9.1, 8.4, 7.6, 8.4, 8.1, 7.5, 7.5, 7.5], [8.035, 8.466, 8.509, 8.132, 8.096, 8.286, 8.862, 9.117, 8.726, 8.527, 8.665, 9.056, 9.448, 8.46, 9.002, 10.651, 12.325, 12.91, 13.045, 13.496, 14.796, 15.042, 15.155, 15.491, 15.453, 15.699, 16.958, 18.131, 19.384, 20.373, 21.845, 23.539, 25.502, 27.418, 29.319, 31.152, 32.512, 33.315, 33.233, 29.877, 26.712, 27.886, 25.287, 24.194, 26.876, 30.599, 32.56, 31.065, 27.48, 24.17, 22.695, 19.934, 17.62, 16.606, 16.249, 15.349, 15.007, 14.453, 13.284, 12.562, 11.187, 10.651, 10.471, 10.444, 10.006, 10.072, 10.021, 10.001, 9.239, 9.328, 8.573, 8.409, 7.46], [8.035, 8.466, 8.509, 8.132, 8.096, 8.286, 8.862, 9.117, 8.726, 8.527, 8.665, 9.056, 9.448, 8.46, 9.002, 10.651, 12.325, 12.91, 13.045, 13.496, 14.796, 15.042, 15.155, 15.491, 15.453, 15.699, 16.958, 18.131, 19.384, 20.373, 21.845, 23.539, 25.502, 27.418, 29.319, 31.152, 32.512, 33.315, 33.233, 29.877, 26.712, 27.886, 25.287, 24.194, 26.876, 30.599, 32.56, 31.065, 27.48, 24.17, 22.695, 19.934, 17.62, 16.606, 16.249, 15.349, 15.007, 14.453, 13.284, 12.562, 11.187, 10.651, 10.471, 10.444, 10.006, 10.072, 10.021, 10.001, 9.239, 9.328, 8.573, 8.409, 7.46], {unit: 'm/s', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>RTP &middot; peak period</h4>
+                
+                <div id="buoy-ike-42035-tp"></div>
+                <div class="buoy-stat-line"><span>struct: bias -1.36s rmse 3.69s corr 0.64 (n=65)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +0.01s rmse 2.69s corr 0.80 (n=65)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42035-tp', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [12.9, 12.12, 11.43, 14.81, 14.81, 14.81, 14.81, 14.81, 14.81, 14.81, 14.81, 14.81, 13.79, 14.81, 13.79, 14.81, 14.81, 14.81, 16.0, 14.81, null, 16.0, 16.0, 14.81, 16.0, 16.0, 16.0, 14.81, 16.0, 14.81, 14.81, 14.81, 14.81, 13.79, 14.81, 13.79, null, null, null, null, null, 10.0, 12.9, 10.81, 10.0, 10.81, null, null, 10.81, 10.0, 10.81, 9.09, 9.09, 8.33, 9.09, 7.69, 8.33, 9.09, 8.33, 9.09, 9.09, 8.33, 8.33, 6.25, 7.69, 6.67, 6.67, 7.14, 5.56, 5.56, 4.76, 5.88, 5.0], [13.65, 3.748, 3.748, 4.11, 13.65, 14.97, 14.97, 14.97, 14.97, 14.97, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 5.946, 6.521, 6.521, 6.521, 7.152, 7.152, 7.844, 7.844, 7.844, 8.603, 8.603, 8.603, 9.435, 9.435, 9.435, 8.603, 8.603, 8.603, 8.603, 11.35, 11.35, 11.35, 11.35, 11.35, 10.35, 10.35, 9.435, 9.435, 8.603, 8.603, 7.844, 7.844, 7.152, 7.152, 7.152, 6.521, 6.521, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 5.422, 5.422], [14.97, 14.97, 14.97, 14.97, 14.97, 14.97, 14.97, 14.97, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 16.42, 18.01, 18.01, 18.01, 18.01, 18.01, 18.01, 18.01, 18.01, 18.01, 18.01, 18.01, 7.152, 7.152, 7.152, 7.844, 7.844, 7.844, 8.603, 8.603, 9.435, 9.435, 9.435, 9.435, 8.603, 8.603, 8.603, 9.435, 11.35, 11.35, 11.35, 11.35, 11.35, 10.35, 10.35, 9.435, 9.435, 8.603, 8.603, 7.844, 7.844, 7.844, 7.152, 7.152, 7.152, 6.521, 6.521, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946, 5.946], {unit: 's', decimals: 1, zeroBased: true, dots: false});</script>
+            
+              <div class="buoy-param">
+                <h4>MWD &middot; direction</h4>
+                <p class="buoy-param-note">circular; bias/RMSE only</p>
+                <div id="buoy-ike-42035-mwd"></div>
+                <div class="buoy-stat-line"><span>struct: bias -3.18deg rmse 44.49deg (n=65)</span></div>
+                <div class="buoy-stat-line"><span>unstruct: bias +11.95deg rmse 46.12deg (n=65)</span></div>
+              </div>
+              <script>drawBuoyChart('buoy-ike-42035-mwd', ["2008-09-11 12:00:00", "2008-09-11 13:00:00", "2008-09-11 14:00:00", "2008-09-11 15:00:00", "2008-09-11 16:00:00", "2008-09-11 17:00:00", "2008-09-11 18:00:00", "2008-09-11 19:00:00", "2008-09-11 20:00:00", "2008-09-11 21:00:00", "2008-09-11 22:00:00", "2008-09-11 23:00:00", "2008-09-12 00:00:00", "2008-09-12 01:00:00", "2008-09-12 02:00:00", "2008-09-12 03:00:00", "2008-09-12 04:00:00", "2008-09-12 05:00:00", "2008-09-12 06:00:00", "2008-09-12 07:00:00", "2008-09-12 08:00:00", "2008-09-12 09:00:00", "2008-09-12 10:00:00", "2008-09-12 11:00:00", "2008-09-12 12:00:00", "2008-09-12 13:00:00", "2008-09-12 14:00:00", "2008-09-12 15:00:00", "2008-09-12 16:00:00", "2008-09-12 17:00:00", "2008-09-12 18:00:00", "2008-09-12 19:00:00", "2008-09-12 20:00:00", "2008-09-12 21:00:00", "2008-09-12 22:00:00", "2008-09-12 23:00:00", "2008-09-13 00:00:00", "2008-09-13 01:00:00", "2008-09-13 02:00:00", "2008-09-13 03:00:00", "2008-09-13 04:00:00", "2008-09-13 05:00:00", "2008-09-13 06:00:00", "2008-09-13 07:00:00", "2008-09-13 08:00:00", "2008-09-13 09:00:00", "2008-09-13 10:00:00", "2008-09-13 11:00:00", "2008-09-13 12:00:00", "2008-09-13 13:00:00", "2008-09-13 14:00:00", "2008-09-13 15:00:00", "2008-09-13 16:00:00", "2008-09-13 17:00:00", "2008-09-13 18:00:00", "2008-09-13 19:00:00", "2008-09-13 20:00:00", "2008-09-13 21:00:00", "2008-09-13 22:00:00", "2008-09-13 23:00:00", "2008-09-14 00:00:00", "2008-09-14 01:00:00", "2008-09-14 02:00:00", "2008-09-14 03:00:00", "2008-09-14 04:00:00", "2008-09-14 05:00:00", "2008-09-14 06:00:00", "2008-09-14 07:00:00", "2008-09-14 08:00:00", "2008-09-14 09:00:00", "2008-09-14 10:00:00", "2008-09-14 11:00:00", "2008-09-14 12:00:00"], [132.0, 149.0, 146.0, 128.0, 128.0, 124.0, 103.0, 112.0, 115.0, 102.0, 109.0, 107.0, 110.0, 117.0, 116.0, 110.0, 107.0, 96.0, 108.0, 110.0, null, 109.0, 110.0, 100.0, 117.0, 119.0, 118.0, 117.0, 113.0, 116.0, 128.0, 139.0, 149.0, 152.0, 125.0, 157.0, null, null, null, null, null, 120.0, 99.0, 103.0, 59.0, 51.0, null, null, 131.0, 188.0, 151.0, 188.0, 200.0, 201.0, 182.0, 193.0, 194.0, 174.0, 174.0, 158.0, 143.0, 148.0, 159.0, 184.0, 153.0, 167.0, 169.0, 154.0, 183.0, 180.0, 187.0, 179.0, 191.0], [88.94, 88.72, 89.95, 92.22, 95.42, 98.7, 100.6, 101.8, 106.8, 113.6, 121.0, 124.9, 125.8, 140.0, 157.2, 150.1, 119.5, 102.0, 93.49, 86.16, 79.36, 75.44, 72.31, 69.14, 67.54, 65.3, 62.16, 61.11, 62.11, 61.23, 59.97, 58.51, 57.31, 56.9, 56.74, 56.85, 57.91, 59.08, 60.92, 64.95, 76.78, 92.56, 106.8, 119.2, 138.2, 168.5, 192.0, 205.0, 210.3, 212.3, 212.6, 212.8, 211.7, 209.8, 207.7, 204.8, 200.7, 198.0, 197.5, 197.7, 197.1, 195.5, 193.9, 192.9, 192.4, 192.0, 191.5, 191.2, 192.0, 193.2, 194.1, 193.6, 194.2], [116.4, 114.8, 116.3, 122.6, 130.5, 137.7, 141.0, 141.9, 148.1, 156.9, 164.0, 167.7, 168.4, 176.3, 184.3, 183.3, 168.4, 149.8, 138.2, 131.1, 115.3, 104.4, 98.84, 93.96, 92.05, 89.24, 82.66, 75.54, 72.22, 68.85, 65.86, 62.87, 60.6, 59.3, 58.48, 58.29, 58.95, 59.9, 61.62, 65.51, 77.55, 93.33, 107.6, 120.2, 140.5, 170.7, 192.6, 204.9, 210.0, 212.0, 212.4, 212.5, 211.6, 209.6, 207.6, 204.8, 200.9, 198.4, 198.0, 198.3, 197.7, 196.3, 194.9, 194.0, 193.5, 193.2, 192.7, 192.5, 193.3, 194.4, 195.3, 194.9, 195.6], {unit: ' deg', decimals: 0, zeroBased: false, dots: true});</script>
+            </div>
+        </div>
+        
+  <div class="note-box"><strong>What is still wrong, after the fixes above.</strong> (1) <em>Galveston remains
+  under-predicted</em>, though less than before: H<sub>s</sub> bias is -0.88 m
+  (structured) and -0.76 m (unstructured), peak 5.26 /
+  5.30 m against 6.03 m observed &mdash; see "Physics fixes" above for what was
+  tried and what remains unexplained. (2) <em>Mid Gulf is over-predicted</em> during core passage (peak
+  12.0 / 13.2 m vs. 9.25 m), which tracks a residual wind
+  overshoot near the core that the GAHM fix reduced but did not eliminate.</div>
+</section>
+
+<section>
+  <h2>Accuracy and runtime, summarized</h2>
+  <p class="section-note">Raw comparison stats, no verdict &mdash; structured and unstructured each win some
+  buoy/parameter comparisons and lose others; see the buoy cards above for the full breakdown per location
+  and parameter.</p>
+  <div class="verdict-grid">
+    <div class="verdict-tile"><div class="vk">Buoys where structured has lower RMSE</div><div class="vv">2 / 3</div>
+      <div class="vd">against NDBC H<sub>s</sub></div></div>
+    <div class="verdict-tile"><div class="vk">Buoys where unstructured has lower RMSE</div><div class="vv">1 / 3</div>
+      <div class="vd">against NDBC H<sub>s</sub></div></div>
+    <div class="verdict-tile"><div class="vk">Structured runtime</div><div class="vv">116 min</div>
+      <div class="vd">WW3 regional, 120 h incl. 48 h spin-up</div></div>
+    <div class="verdict-tile"><div class="vk">Unstructured runtime</div><div class="vv">329 min</div>
+      <div class="vd">2.8&times; the structured runtime</div></div>
+  </div>
+  <div class="note-box"><strong>Why does peak-period correlation differ between the two grids, when H<sub>s</sub>
+  correlation barely does?</strong> For Ike, correlation against NDBC's peak/dominant period is
+  higher for the unstructured grid at 3 of
+  the 3 buoys (mean gap 0.08), while H<sub>s</sub> correlation between the two grids differs by only
+  0.02 on average at the same buoys. H<sub>s</sub> is an integral over the full frequency spectrum, so small
+  differences in local spectral shape between the structured (uniform 0.1&deg;) and unstructured (55,691-node,
+  spatially varying resolution) WW3 solutions mostly average out; peak period picks the single frequency bin with
+  the most energy, so the same differences can shift which bin wins. At Galveston specifically, the
+  structured-forced nest's peak period is worse (RTP bias -1.4 s, corr
+  0.64) than the unstructured-forced nest (bias
+  +0.0 s, corr 0.80). Why the two WW3 grids
+  differ in swell delivery has not been diagnosed, and the <a href="/portfolio/independent-projects/harvey-ww3-swan-grid-intercomparison/">companion report for Hurricane Harvey</a> shows a different
+  split between buoys, so this is not evidence that either grid is generally better.</div>
+</section>
+
+<footer>
+  pywaves &middot; WW3 7.14 (CMake/SHRD/ST4) + SWAN 41.51 &middot; GEBCO 2023 bathymetry &middot;
+  ERA5 ambient wind &middot; run 09/09 12:00&ndash;09/14 12:00 UTC (48 h spin-up; scored 09/11 12:00&ndash;09/14 12:00)
+</footer>
+
+</div>
+</body>
+</html>
