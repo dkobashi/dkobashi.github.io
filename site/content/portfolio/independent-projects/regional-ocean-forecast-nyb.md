@@ -1,5 +1,5 @@
 ---
-title: "Regional Operational Ocean Forecast for New York Bight"
+title: "Regional Operational Ocean Forecast for New York Bight (Prototype)"
 date: 2026-01-01
 description: "A self-operated ROMS regional ocean forecast system for the New York Bight, running a daily 5-day forecast cycle for surface currents, water level, temperature, and salinity, with skill checked against NOAA tide gauges."
 challenge: "Operating a forecast system is a different test than building the model itself. The daily cycle — forcing data ingestion, model execution, quality checks, and report generation — has to run reliably every day, and the forecasts have to be checked against what the ocean actually did, not just judged as plausible-looking."
