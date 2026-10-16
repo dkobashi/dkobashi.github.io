@@ -21,7 +21,7 @@ I can use various computer systems to implement operational forecasts depending 
 - Local workstation
 
 ## Example
-- [New York Bight Operational Forecast](/portfolio/independent-projects/regional-ocean-forecast-nyb/) — Prototype operational forecast for NYB
+- [New York Bight Forecast (Prototype)](/portfolio/independent-projects/regional-ocean-forecast-nyb/) — Prototype 5-day forecast for NYB
 - [Texas-Louisiana Operational Ocean Forecast](https://gcoos5.geos.tamu.edu/thredds/catalog/ROFS_latest/catalog.html) — Operational forecast maintained at Texas A&M University 
 
 *Thumbnail: The Gulf Stream, MODIS/Aqua — public domain (NASA Earth Observatory, Norman Kuring/MODIS Ocean Team).*
